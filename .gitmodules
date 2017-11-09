@@ -1,0 +1,12 @@
+[submodule "bucash"]
+	path = bucash
+	url = git@github.com:BitcoinUnlimited/BitcoinUnlimited.git
+[submodule "abc"]
+	path = abc
+	url = git@github.com:Bitcoin-ABC/bitcoin-abc.git
+[submodule "xt"]
+	path = xt
+	url = git@github.com:bitcoinxt/bitcoinxt
+[submodule "classic"]
+	path = classic
+	url = git@github.com:bitcoinclassic/bitcoinclassic
