@@ -6,8 +6,6 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 base_dir = os.path.join(dir_path, "..")
 
-clientDirs = ["bucash", "abc", "xt", "classic"]
-
 import pdb
 import binascii
 import time
@@ -19,7 +17,10 @@ logging.basicConfig(format='%(asctime)s.%(levelname)s: %(message)s', level=loggi
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import *
 
-class MyTest(BitcoinTestFramework):
+from interopUtils import *
+
+
+class CTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs):
         BitcoinTestFramework.__init__(self)
         self.buildVariant = build_variant
@@ -46,18 +47,48 @@ class MyTest(BitcoinTestFramework):
         self.sync_all()
 
     def run_test(self):
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
-        print("peers: %s" % ([ x.getpeerinfo() for x in self.nodes]))
-        for n in self.nodes[0:3]:
-            n.generate(10)
-        time.sleep(5)
-        #self.nodes[3].generate(10, coinbase) # classic is different
+        # #########
+        print("Verify that all nodes are connected")
+        verifyInterconnect(self.nodes)
+
         print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
 
+        # #########
+        print("Verify that every node can produce blocks and that every other node receives them")
+        for n in self.nodes[0:3]:
+            n.generate(20)
+            sync_blocks(self.nodes)
+
+        # classic's generate API is different
+        addr = self.nodes[3].getnewaddress()
+        pubkey = self.nodes[3].validateaddress(addr)["pubkey"]
+        self.nodes[3].generate(10, pubkey)
+        sync_blocks(self.nodes)
+
+        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+
+        # #########
+        print("Verify that every node can produce P2PKH transactions and that every other node receives them")
+
+        # first get mature coins in every client
+        self.nodes[0].generate(101)
+        sync_blocks(self.nodes)
+
+        for n in self.nodes[0:3]:
+            addr = n.getnewaddress()
+            n.sendtoaddress(addr, 1)
+            sync_mempools(self.nodes[0:3])
+
+        print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
+
+        print("Verify that a block with P2PKH txns is accepted by all nodes and clears the mempool on all nodes")
+        self.nodes[0].generate(1)
+        sync_blocks(self.nodes[0:3])
+        print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
 
 def Test():
-    t = MyTest("debug", clientDirs)
+    t = CTest("debug", clientDirs)
     t.drop_to_pdb = True
     bitcoinConf = {
         "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],
