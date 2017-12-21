@@ -6,11 +6,11 @@ COMMON_CONF_FLAGS:=--enable-debug --disable-hardening --disable-bench --disable-
 BU_CONF_FLAGS:=$(COMMON_CONF_FLAGS) --enable-gperf
 XT_CONF_FLAGS:=$(COMMON_CONF_FLAGS)
 ABC_CONF_FLAGS:=$(COMMON_CONF_FLAGS)
-CLASSIC_CONF_FLAGS:=$(COMMON_CONF_FLAGS)
+CLASSIC_CONF_FLAGS:=$(COMMON_CONF_FLAGS) --enable-uahf
 
 .PHONY: bu abc xt classic
 
-all: bu abc xt classic
+all: bu abc xt
 
 
 bu:

@@ -6,8 +6,6 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 base_dir = os.path.join(dir_path, "..")
 
-clientDirs = ["bucash", "abc", "xt", "classic"]
-
 import pdb
 import binascii
 import time
@@ -18,6 +16,7 @@ logging.basicConfig(format='%(asctime)s.%(levelname)s: %(message)s', level=loggi
 
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import *
+from interopUtils import *
 
 class MyTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs):
@@ -66,5 +65,5 @@ def Test():
     # "--tmpdir=/ramdisk/test",
     #t.main(["--nocleanup", "--noshutdown"], bitcoinConf, None)
     eachConf = [bitcoinConf]*4
-    eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
+    # eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
     t.main(["--tmpdir=/ramdisk/test"], bitcoinConf, None)

@@ -55,15 +55,15 @@ class CTest(BitcoinTestFramework):
 
         # #########
         print("Verify that every node can produce blocks and that every other node receives them")
-        for n in self.nodes[0:3]:
+        for n in self.nodes:
             n.generate(20)
             sync_blocks(self.nodes)
 
         # classic's generate API is different
-        addr = self.nodes[3].getnewaddress()
-        pubkey = self.nodes[3].validateaddress(addr)["pubkey"]
-        self.nodes[3].generate(10, pubkey)
-        sync_blocks(self.nodes)
+        #addr = self.nodes[3].getnewaddress()
+        #pubkey = self.nodes[3].validateaddress(addr)["pubkey"]
+        #self.nodes[3].generate(10, pubkey)
+        #sync_blocks(self.nodes)
 
         print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
 
@@ -74,16 +74,16 @@ class CTest(BitcoinTestFramework):
         self.nodes[0].generate(101)
         sync_blocks(self.nodes)
 
-        for n in self.nodes[0:3]:
+        for n in self.nodes:
             addr = n.getnewaddress()
             n.sendtoaddress(addr, 1)
-            sync_mempools(self.nodes[0:3])
+            sync_mempools(self.nodes)
 
         print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
         print("Verify that a block with P2PKH txns is accepted by all nodes and clears the mempool on all nodes")
         self.nodes[0].generate(1)
-        sync_blocks(self.nodes[0:3])
+        sync_blocks(self.nodes)
         print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
 
@@ -97,5 +97,5 @@ def Test():
     # "--tmpdir=/ramdisk/test",
     #t.main(["--nocleanup", "--noshutdown"], bitcoinConf, None)
     eachConf = [bitcoinConf]*4
-    eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
+    # eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
     t.main(["--tmpdir=/ramdisk/test"], bitcoinConf, None)

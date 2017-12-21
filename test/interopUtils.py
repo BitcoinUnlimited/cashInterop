@@ -1,5 +1,7 @@
-clientDirs = ["bucash", "abc", "xt", "classic"]
-clientSubvers = set(["Bitcoin ABC", "Classic", "Bitcoin XT", "BUCash"])
+#clientDirs = ["bucash", "abc", "xt", "classic"]
+#clientSubvers = set(["Bitcoin ABC", "Classic", "Bitcoin XT", "BUCash"])
+clientDirs = ["bucash", "abc", "xt", "bucash"]
+clientSubvers = set(["Bitcoin ABC", "Bitcoin XT", "BUCash"])
 
 def subverParseClient(s):
     """return the client name given a subversion string"""
@@ -18,5 +20,5 @@ def verifyInterconnect(nodes, clientTypes=clientSubvers):
         notConnectedTo = clientTypes - connectedTo
         notConnectedTo.discard(myclient)
         if notConnectedTo:
-            print("Client %s is not connected to %s" % myclient, str(notConnectedTo))
+            print("Client %s is not connected to %s" % (myclient, str(notConnectedTo)))
         assert(len(notConnectedTo) == 0)
