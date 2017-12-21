@@ -67,3 +67,6 @@ def Test():
     eachConf = [bitcoinConf]*4
     # eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
     t.main(["--tmpdir=/ramdisk/test"], bitcoinConf, None)
+
+if __name__ == "__main__":
+    Test()
