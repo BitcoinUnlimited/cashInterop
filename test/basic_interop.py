@@ -19,6 +19,24 @@ from test_framework.util import *
 
 from interopUtils import *
 
+# number of block used for generate function
+num_blocks = 20
+
+def verify_chain_tip_syncblk(self, nodeId):
+    """
+    Verify the main chain of all known tips in the block tree
+        branchlen = 0  (numeric) zero for main chain
+        status = active
+        height = number of mined blocks * number of nodes
+    Input:
+        nodeId - index of the client in the self.nodes[] list
+    """
+    tips = self.nodes[nodeId].getchaintips()
+    print(len(tips))
+    print(tips)
+    assert_equal(tips[0]['branchlen'], 0)
+    assert_equal(tips[0]['status'], 'active')
+    assert_equal(tips[0]['height'], num_blocks*len(self.nodes))
 
 class CTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs):
@@ -52,11 +70,12 @@ class CTest(BitcoinTestFramework):
         verifyInterconnect(self.nodes)
 
         print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        print("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
 
         # #########
         print("Verify that every node can produce blocks and that every other node receives them")
         for n in self.nodes:
-            n.generate(20)
+            n.generate(num_blocks)
             sync_blocks(self.nodes)
 
         # classic's generate API is different
@@ -66,6 +85,13 @@ class CTest(BitcoinTestFramework):
         #sync_blocks(self.nodes)
 
         print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        
+        # #########
+        print("Verify main chain blocklen, status, and height after sync_blocks")
+        verify_chain_tip_syncblk(self,0)
+        verify_chain_tip_syncblk(self,1)
+        verify_chain_tip_syncblk(self,2)
+        verify_chain_tip_syncblk(self,3)
 
         # #########
         print("Verify that every node can produce P2PKH transactions and that every other node receives them")
