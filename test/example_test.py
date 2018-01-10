@@ -17,6 +17,21 @@ logging.basicConfig(format='%(asctime)s.%(levelname)s: %(message)s', level=loggi
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import *
 from interopUtils import *
+    
+def verify_chain_tip(self, nodeId):
+    """
+    Verify the main chain of all know tips in the block tree
+        branchlen = 0  (numeric) zero for main chain
+        status = active
+    Input:
+        nodeId - index of the client in the self.nodes[] list
+    """
+    tips = self.nodes[nodeId].getchaintips()
+    print(len(tips))
+    print(tips)
+    assert_equal(tips[0]['branchlen'], 0)
+    assert_equal(tips[0]['status'], 'active')
+
 
 class MyTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs):
@@ -52,8 +67,14 @@ class MyTest(BitcoinTestFramework):
         time.sleep(5)
         #self.nodes[3].generate(10, coinbase) # classic is different
         print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        print("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
 
-
+        # verify main chain tip branchlen and status
+        verify_chain_tip(self, 0)
+        verify_chain_tip(self, 1)
+        verify_chain_tip(self, 2)
+        verify_chain_tip(self, 3)
+   
 
 def Test():
     t = MyTest("debug", clientDirs)
