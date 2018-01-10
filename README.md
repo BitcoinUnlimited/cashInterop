@@ -1,7 +1,5 @@
 # cashInterop
-Bitcoin Cash client interoperability testing
-
-Three clients are used for InterOperability testing
+Three bitcoin clients are used for InterOperability testing
 
 * [BitcoinUnlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited)
 * [Bitcoin-ABC](https://github.com/Bitcoin-ABC/bitcoin-abc)
@@ -29,13 +27,13 @@ Make sure all package dependencies are installed (see Quick installation instruc
 
 Both BU and XT may fail to build because of missing package dependencies of libgoogle-perftools-dev, and libcurl4-openssl-dev respectively. 
 
-Since --enable-gperf is enabled in as shown in Makefile, install dependency by  
+1. Since --enable-gperf is enabled in the Makefile for BU, install dependency by
 
 	```
 	$ sudo apt-get install libgoogle-perftools-dev
 	```
 
-Build requirements for XT (see build for Linux) 
+2. Build requirements for XT
 
 	```
 	$ sudo apt-get install libcurl4-openssl-dev
