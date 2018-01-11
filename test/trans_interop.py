@@ -22,6 +22,65 @@ from interopUtils import *
 # number of block used for generate function
 num_blocks = 20
 
+
+def verify_transaction_sendmany(self, nodeTxOut, nodeTxIn, num_signature):
+    """
+    Verify the transaction of BTC using
+    "sendmany" API from one node: twice to self, and twice to other node
+    "createmultisig" to create a P2SH multi-signature address
+    
+    See Bitcoin API JSON-RPC:
+    > https://chainquery.com/bitcoin-api/sendmany
+    > https://chainquery.com/bitcoin-api/creatmultisig
+    
+    Input:
+        nodeTxOut : node Id of the TxOut (debit)
+        nodeTxIn : node Id of the TxIn (credit)
+        num_signature : number of signatures required
+    """ 
+    print(" ")
+    #print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])
+    send_to = { self.nodes[nodeTxOut].getnewaddress() : 0.11,
+                self.nodes[nodeTxIn].getnewaddress() : 0.22,
+                self.nodes[nodeTxOut].getaccountaddress("from1") : 0.33,
+                self.nodes[nodeTxIn].getaccountaddress("toself") : 0.44 }
+    txid = self.nodes[nodeTxIn].sendmany("", send_to)
+    self.sync_all()
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                       {"category":"send","amount":Decimal("-0.11")},
+                       {"txid":txid} )
+    assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                       {"category":"receive","amount":Decimal("0.11")},
+                       {"txid":txid} )
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                       {"category":"send","amount":Decimal("-0.22")},
+                       {"txid":txid} )
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                       {"category":"receive","amount":Decimal("0.22")},
+                       {"txid":txid} )
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                       {"category":"send","amount":Decimal("-0.33")},
+                       {"txid":txid} )
+    assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                       {"category":"receive","amount":Decimal("0.33")},
+                       {"txid":txid, "account" : "from1"} )
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                       {"category":"send","amount":Decimal("-0.44")},
+                       {"txid":txid, "account" : ""} )
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                       {"category":"receive","amount":Decimal("0.44")},
+                       {"txid":txid, "account" : "toself"} )
+
+    multisig = self.nodes[nodeTxIn].createmultisig(num_signature, [self.nodes[nodeTxIn].getnewaddress()])
+    self.nodes[nodeTxOut].importaddress(multisig["redeemScript"], "watchonly", False, True)
+    txid = self.nodes[nodeTxIn].sendtoaddress(multisig["address"], 0.1)
+    self.nodes[nodeTxIn].generate(1)
+    self.sync_all()
+    assert(len(self.nodes[nodeTxOut].listtransactions("watchonly", 100, 0, False)) == 0)
+    assert_array_result(self.nodes[nodeTxOut].listtransactions("watchonly", 100, 0, True),
+                       {"category":"receive","amount":Decimal("0.1")},
+                       {"txid":txid, "account" : "watchonly"} )
+
 def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
     """
     Verify the transaction of BTC amount and confirmation from one node to the other
@@ -205,7 +264,28 @@ class CTest(BitcoinTestFramework):
         
         print("Verify transaction amounts on the same nodes")
         verify_sendto_same_node(self, 10)
-         
+        
+        print("Verify transaction amounts and confirmation counts between two nodes")
+        verify_sendto_different_node(self, 0.5)
+        
+        print("Verify transaction amounts on the same nodes")
+        verify_sendto_same_node(self, 0.5)
+        
+        time.sleep(10)
+        print("Verify transaction using sendmany and createmultisig APIs : Node 0 to 1")
+        verify_transaction_sendmany(self, 0, 1, 1)
+        
+        # Comment out for now because sometimes got : 
+        # JSONRPC error: importaddress "address" ( "label" rescan )
+        # Note: This call can take minutes to complete if rescan is true.
+#        time.sleep(10)
+#        print("Verify transaction using sendmany and createmultisig APIs : Node 1 to 2")
+#        verify_transaction_sendmany(self, 1, 2, 1)
+        
+#        time.sleep(10)
+#        print("Verify transaction using sendmany and createmultisig APIs : Node 2 to 3")
+#        verify_transaction_sendmany(self, 2, 3, 1)   
+        
 def Test():
     t = CTest("debug", clientDirs)
     t.drop_to_pdb = True
