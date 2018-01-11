@@ -30,7 +30,7 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
         nodeTxOut : node Id of the TxOut (debit)
         nodeTxIn : node Id of the TxIn (credit)
         amount : amount to spend in BTC
-    """
+    """ 
     print(" ")
     #print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])
     
@@ -39,41 +39,106 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
     print("### Balance of Spending Node(%s) " %debit_before)
     print("### Balance of Receiving Node(%s) " %credit_before)
     
-    
     txid = self.nodes[nodeTxOut].sendtoaddress(self.nodes[nodeTxIn].getnewaddress(), amount)
     print("=> txid :  %s " % txid)
     self.sync_all()
-    
-    #print(self.nodes[nodeTxOut].listtransactions())
-    print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])  
-    assert_array_result(self.nodes[nodeTxOut].listtransactions(),
-                        {"txid":txid},
-                        {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":0})                 
-    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
-                        {"txid":txid},
-                        {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":0})
-        
-    # mine a block, confirmations should change:
-    self.nodes[nodeTxOut].generate(1)
-    self.sync_all()
-        
-    assert_array_result(self.nodes[nodeTxOut].listtransactions(),
-                        {"txid":txid},
-                        {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":1})
-    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
-                        {"txid":txid},
-                        {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":1})
-    print("### Balance (After): %s" % [ x.getinfo()["balance"] for x in self.nodes])
-    
-    
-    debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
-    credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
-    print("Balance of Spending Node(%s) " %debit_after)
-    print("=> Balance of Receiving Node(%s) " %credit_after)
-    
-    # credit after transaction confirmed is increased by amount
-    assert( (credit_after - credit_before) == amount)
 
+    if (nodeTxOut != nodeTxIn):
+        #print(self.nodes[nodeTxOut].listtransactions())
+        print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])  
+        assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                            {"txid":txid},
+                            {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":0})                 
+        assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                            {"txid":txid},
+                            {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":0})
+
+        # mine a block, confirmations should change:
+        self.nodes[nodeTxOut].generate(1)
+        self.sync_all()
+
+        assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                            {"txid":txid},
+                            {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":1})
+        assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                            {"txid":txid},
+                            {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":1})
+        print("### Balance (After): %s" % [ x.getinfo()["balance"] for x in self.nodes])
+
+
+        debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
+        credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
+        print("Balance of Spending Node(%s) " %debit_after)
+        print("=> Balance of Receiving Node(%s) " %credit_after)
+
+        # credit after transaction confirmed is increased by amount
+        assert( (credit_after - credit_before) == amount)
+    else:
+        # send-to-self:
+        assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                           {"txid":txid, "category":"send"},
+                           {"amount":Decimal(str(-amount))})
+        assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                           {"txid":txid, "category":"receive"},
+                           {"amount":Decimal(str(amount))})
+
+        debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
+        credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
+        print("Balance of Spending Node(%s) " %debit_after)
+        print("=> Balance of Receiving Node(%s) " %credit_after)
+        
+        # credit and debit after transaction confirmed is the same
+        assert( debit_after == credit_after )
+
+        self.nodes[nodeTxOut].generate(1)
+        self.sync_all()
+        
+        debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
+        credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
+        print("Sync_all Balance of Spending Node(%s) " %debit_after)
+        print("=> Sync_all Balance of Receiving Node(%s) " %credit_after)
+        
+        # credit and debit after sync_all should still be the same
+        assert( debit_after == credit_after )
+        
+             
+def verify_sendto_same_node(self, amount):
+    """
+    Verify the sending and receiving nodes are the same
+    Input:
+        amount : amount to spend in BTC
+    """
+    
+    print("*** Same Nodes ****")
+    # send amount to self (from Node 0 to 0)
+    verify_transaction_amount_confirm(self, 0, 0, amount)
+    # send amount to self (from Node 1 to 1)
+    verify_transaction_amount_confirm(self, 1, 1, amount)
+    # send amount to self (from Node 2 to 2)
+    verify_transaction_amount_confirm(self, 2, 2, amount)
+    # send amount = 10 to self (from Node 3 to 3)
+    verify_transaction_amount_confirm(self, 3, 3, amount)
+    
+ 
+def verify_sendto_different_node(self, amount):
+    """
+    Verify the sending and receiving nodes are not the same node
+    Input:
+        amount : amount to spend in BTC
+    """
+    
+    print("*** Different Nodes ****")
+    # send amount from Node 0 to 1 
+    verify_transaction_amount_confirm(self, 0, 1, amount)
+    # send amount from Node 0 to 2 
+    verify_transaction_amount_confirm(self, 0, 2, amount)
+    # send amount from Node 1 to 2 
+    verify_transaction_amount_confirm(self, 1, 2, amount)
+    # send amount from Node 1 to 3 
+    verify_transaction_amount_confirm(self, 1, 3, amount)
+    # send amount from Node 2 to 3 
+    verify_transaction_amount_confirm(self, 2, 3, amount)
+    
 
 class CTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs):
@@ -136,22 +201,11 @@ class CTest(BitcoinTestFramework):
         print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
         print("Verify transaction amounts and confirmation counts between two nodes")
-        # Simple send amount = 10 from Node 0 to 1 
-        verify_transaction_amount_confirm(self, 0, 1, 10)
+        verify_sendto_different_node(self, 10)
         
-        # Simple send amount = 10 from Node 0 to 2 
-        verify_transaction_amount_confirm(self, 0, 2, 10)
-        
-        # Simple send amount = 10 from Node 1 to 2 
-        verify_transaction_amount_confirm(self, 1, 2, 10)
-        
-        # Simple send amount = 10 from Node 1 to 3 
-        verify_transaction_amount_confirm(self, 1, 3, 10)
-        
-        # Simple send amount = 10 from Node 2 to 3 
-        verify_transaction_amount_confirm(self, 2, 3, 10)
-        
-        
+        print("Verify transaction amounts on the same nodes")
+        verify_sendto_same_node(self, 10)
+         
 def Test():
     t = CTest("debug", clientDirs)
     t.drop_to_pdb = True
