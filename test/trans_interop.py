@@ -22,6 +22,7 @@ from interopUtils import *
 # number of block used for generate function
 num_blocks = 20
 
+<<<<<<< HEAD
 
 def verify_transaction_sendmany(self, nodeTxOut, nodeTxIn, num_signature):
     """
@@ -81,6 +82,8 @@ def verify_transaction_sendmany(self, nodeTxOut, nodeTxIn, num_signature):
                        {"category":"receive","amount":Decimal("0.1")},
                        {"txid":txid, "account" : "watchonly"} )
 
+=======
+>>>>>>> upstream/master
 def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
     """
     Verify the transaction of BTC amount and confirmation from one node to the other
@@ -89,7 +92,11 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
         nodeTxOut : node Id of the TxOut (debit)
         nodeTxIn : node Id of the TxIn (credit)
         amount : amount to spend in BTC
+<<<<<<< HEAD
     """ 
+=======
+    """
+>>>>>>> upstream/master
     print(" ")
     #print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])
     
@@ -98,6 +105,7 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
     print("### Balance of Spending Node(%s) " %debit_before)
     print("### Balance of Receiving Node(%s) " %credit_before)
     
+<<<<<<< HEAD
     txid = self.nodes[nodeTxOut].sendtoaddress(self.nodes[nodeTxIn].getnewaddress(), amount)
     print("=> txid :  %s " % txid)
     self.sync_all()
@@ -198,6 +206,43 @@ def verify_sendto_different_node(self, amount):
     # send amount from Node 2 to 3 
     verify_transaction_amount_confirm(self, 2, 3, amount)
     
+=======
+    
+    txid = self.nodes[nodeTxOut].sendtoaddress(self.nodes[nodeTxIn].getnewaddress(), amount)
+    print("=> txid :  %s " % txid)
+    self.sync_all()
+    
+    #print(self.nodes[nodeTxOut].listtransactions())
+    print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])  
+    assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                        {"txid":txid},
+                        {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":0})                 
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                        {"txid":txid},
+                        {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":0})
+        
+    # mine a block, confirmations should change:
+    self.nodes[nodeTxOut].generate(1)
+    self.sync_all()
+        
+    assert_array_result(self.nodes[nodeTxOut].listtransactions(),
+                        {"txid":txid},
+                        {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":1})
+    assert_array_result(self.nodes[nodeTxIn].listtransactions(),
+                        {"txid":txid},
+                        {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":1})
+    print("### Balance (After): %s" % [ x.getinfo()["balance"] for x in self.nodes])
+    
+    
+    debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
+    credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
+    print("Balance of Spending Node(%s) " %debit_after)
+    print("=> Balance of Receiving Node(%s) " %credit_after)
+    
+    # credit after transaction confirmed is increased by amount
+    assert( (credit_after - credit_before) == amount)
+
+>>>>>>> upstream/master
 
 class CTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs):
@@ -260,6 +305,7 @@ class CTest(BitcoinTestFramework):
         print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
         print("Verify transaction amounts and confirmation counts between two nodes")
+<<<<<<< HEAD
         verify_sendto_different_node(self, 10)
         
         print("Verify transaction amounts on the same nodes")
@@ -285,6 +331,23 @@ class CTest(BitcoinTestFramework):
 #        time.sleep(10)
 #        print("Verify transaction using sendmany and createmultisig APIs : Node 2 to 3")
 #        verify_transaction_sendmany(self, 2, 3, 1)   
+=======
+        # Simple send amount = 10 from Node 0 to 1 
+        verify_transaction_amount_confirm(self, 0, 1, 10)
+        
+        # Simple send amount = 10 from Node 0 to 2 
+        verify_transaction_amount_confirm(self, 0, 2, 10)
+        
+        # Simple send amount = 10 from Node 1 to 2 
+        verify_transaction_amount_confirm(self, 1, 2, 10)
+        
+        # Simple send amount = 10 from Node 1 to 3 
+        verify_transaction_amount_confirm(self, 1, 3, 10)
+        
+        # Simple send amount = 10 from Node 2 to 3 
+        verify_transaction_amount_confirm(self, 2, 3, 10)
+        
+>>>>>>> upstream/master
         
 def Test():
     t = CTest("debug", clientDirs)
