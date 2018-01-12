@@ -70,9 +70,9 @@ Running tests
 Default folder location for storing bitcoin data and log files is set to /tmp/cashInterop
 
 2. You can overwrite this location by using option --tmpdir=<folder_location>. 
-Second example below will create the folder in the place where the script is executed.
+Second example below will create the folder "testlogs" in the place where the script is executed.
 
 	```
 	$ ./example_test.py --tmpdir=/tmp/logfolder
-        $ ./example_test.py --tmpdir=testlogs
+	$ ./example_test.py --tmpdir=testlogs
 	```
