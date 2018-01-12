@@ -21,6 +21,13 @@ Setup
 	$ git submodule update --init --recursive
 	```
 
+3. Create a folder at location /ramdisk for storing bitcoin data and log files (since test script option "--tmpdir=/ramdisk/test" is used when launching node) 
+
+	```
+	$ sudo mkdir /ramdisk 
+	$ sudo chmod 777 /ramdisk 
+	```
+
 Dependencies
 =====================
 Make sure all package dependencies are installed (see Quick installation instructions section in [BitcoinUnlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited)). 
