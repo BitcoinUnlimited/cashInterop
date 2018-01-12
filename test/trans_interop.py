@@ -295,11 +295,15 @@ def Test():
         "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],
         "blockprioritysize": 2000000  # we don't want any transactions rejected due to insufficient fees...
     }
-    # "--tmpdir=/ramdisk/test",
-    #t.main(["--nocleanup", "--noshutdown"], bitcoinConf, None)
-    eachConf = [bitcoinConf]*4
-    # eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
-    t.main(["--tmpdir=/ramdisk/test"], bitcoinConf, None)
+    # folder to store bitcoin runtime data and logs
+    tmpdir = "--tmpdir=/tmp/cashInterop"
+    
+    for arg in sys.argv[1:]:
+        if (("--tmpdir=" or "--tmpdir =") in arg):
+            tmpdir = str(arg)
+            print("# User input : %s" %tmpdir)
+    
+    t.main([tmpdir], bitcoinConf, None)
 
 if __name__ == "__main__":
     Test()

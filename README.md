@@ -21,14 +21,6 @@ Setup
 	$ git submodule update --init --recursive
 	```
 
-3. Create a folder at location /ramdisk for storing bitcoin data and log files (since test script option "--tmpdir=/ramdisk/test" is used when launching node) 
-
-	```
-	$ sudo mkdir /ramdisk 
-	$ sudo chmod 777 /ramdisk 
-	```
-
-
 Dependencies
 =====================
 Make sure all package dependencies are installed (see Quick installation instructions section in [BitcoinUnlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited)). 
@@ -70,4 +62,17 @@ Building Project
 	$ ls -la bu/debug/src/bitcoin* 
 	$ ls -la xt/debug/src/bitcoin* 
 	$ ls -la abc/debug/src/bitcoin* 
+	```
+
+Running tests
+=================
+1. All available tests are located in the test folder. 
+Default folder location for storing bitcoin data and log files is set to /tmp/cashInterop
+
+2. You can overwrite this location by using option --tmpdir=<folder_location>. 
+Second example below will create the folder in the place where the script is executed.
+
+	```
+	$ ./example_test.py --tmpdir=/tmp/logfolder
+        $ ./example_test.py --tmpdir=testlogs
 	```
