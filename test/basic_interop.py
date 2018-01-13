@@ -125,7 +125,7 @@ def Test():
     tmpdir = "--tmpdir=/tmp/cashInterop"
     
     for arg in sys.argv[1:]:
-        if (("--tmpdir=" or "--tmpdir =") in arg):
+        if ("--tmpdir=" or "--tmpdir =") in arg:
             tmpdir = str(arg)
             logging.info("# User input : %s" %tmpdir)
     
