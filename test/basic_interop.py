@@ -33,8 +33,8 @@ def verify_chain_tip_syncblk(self, nodeId):
         nodeId - index of the client in the self.nodes[] list
     """
     tips = self.nodes[nodeId].getchaintips()
-    print(len(tips))
-    print(tips)
+    logging.info(len(tips))
+    logging.info(tips)
     assert_equal(tips[0]['branchlen'], 0)
     assert_equal(tips[0]['status'], 'active')
     assert_equal(tips[0]['height'], num_blocks*len(self.nodes))
@@ -51,7 +51,7 @@ class CTest(BitcoinTestFramework):
 
     def setup_network(self, split=False):
         bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
-        print(bins)
+        logging.info(bins)
         self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=bins, timewait=60*60)
 
         # Connect each node to the other
@@ -67,14 +67,14 @@ class CTest(BitcoinTestFramework):
 
     def run_test(self):
         # #########
-        print("Verify that all nodes are connected")
+        logging.info("Verify that all nodes are connected")
         verifyInterconnect(self.nodes)
 
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
-        print("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
+        logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        logging.info("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
 
         # #########
-        print("Verify that every node can produce blocks and that every other node receives them")
+        logging.info("Verify that every node can produce blocks and that every other node receives them")
         for n in self.nodes:
             n.generate(num_blocks)
             sync_blocks(self.nodes)
@@ -85,7 +85,7 @@ class CTest(BitcoinTestFramework):
         #self.nodes[3].generate(10, pubkey)
         #sync_blocks(self.nodes)
 
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
         
         # #########
         print("Verify main chain blocklen, status, and height after sync_blocks")
@@ -95,7 +95,7 @@ class CTest(BitcoinTestFramework):
         verify_chain_tip_syncblk(self,3)
 
         # #########
-        print("Verify that every node can produce P2PKH transactions and that every other node receives them")
+        logging.info("Verify that every node can produce P2PKH transactions and that every other node receives them")
 
         # first get mature coins in every client
         self.nodes[0].generate(101)
@@ -106,12 +106,12 @@ class CTest(BitcoinTestFramework):
             n.sendtoaddress(addr, 1)
             sync_mempools(self.nodes)
 
-        print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
+        logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
-        print("Verify that a block with P2PKH txns is accepted by all nodes and clears the mempool on all nodes")
+        logging.info("Verify that a block with P2PKH txns is accepted by all nodes and clears the mempool on all nodes")
         self.nodes[0].generate(1)
         sync_blocks(self.nodes)
-        print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
+        logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
 
 def Test():
@@ -127,7 +127,7 @@ def Test():
     for arg in sys.argv[1:]:
         if (("--tmpdir=" or "--tmpdir =") in arg):
             tmpdir = str(arg)
-            print("# User input : %s" %tmpdir)
+            logging.info("# User input : %s" %tmpdir)
     
     t.main([tmpdir], bitcoinConf, None)
 

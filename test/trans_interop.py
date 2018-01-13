@@ -37,9 +37,8 @@ def verify_transaction_sendmany(self, nodeTxOut, nodeTxIn, num_signature):
         nodeTxOut : node Id of the TxOut (debit)
         nodeTxIn : node Id of the TxIn (credit)
         num_signature : number of signatures required
-    """ 
-    print(" ")
-    #print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])
+    """
+    #logging.info("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])
     send_to = { self.nodes[nodeTxOut].getnewaddress() : 0.11,
                 self.nodes[nodeTxIn].getnewaddress() : 0.22,
                 self.nodes[nodeTxOut].getaccountaddress("from1") : 0.33,
@@ -90,22 +89,19 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
         nodeTxOut : node Id of the TxOut (debit)
         nodeTxIn : node Id of the TxIn (credit)
         amount : amount to spend in BTC
-    """ 
-    print(" ")
-    #print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])
-    
+    """
     debit_before = self.nodes[nodeTxOut].getinfo()["balance"]
     credit_before = self.nodes[nodeTxIn].getinfo()["balance"]
-    print("### Balance of Spending Node(%s) " %debit_before)
-    print("### Balance of Receiving Node(%s) " %credit_before)
+    logging.info("### Balance of Spending Node(%s) " %debit_before)
+    logging.info("### Balance of Receiving Node(%s) " %credit_before)
     
     txid = self.nodes[nodeTxOut].sendtoaddress(self.nodes[nodeTxIn].getnewaddress(), amount)
-    print("=> txid :  %s " % txid)
+    logging.info("=> txid :  %s " % txid)
     self.sync_all()
 
     if (nodeTxOut != nodeTxIn):
-        #print(self.nodes[nodeTxOut].listtransactions())
-        print("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])  
+        #logging.info(self.nodes[nodeTxOut].listtransactions())
+        logging.info("### Balance (Before) : %s" % [ x.getinfo()["balance"] for x in self.nodes])  
         assert_array_result(self.nodes[nodeTxOut].listtransactions(),
                             {"txid":txid},
                             {"category":"send","account":"","amount":Decimal(str(-amount)),"confirmations":0})                 
@@ -123,13 +119,13 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
         assert_array_result(self.nodes[nodeTxIn].listtransactions(),
                             {"txid":txid},
                             {"category":"receive","account":"","amount":Decimal(str(amount)),"confirmations":1})
-        print("### Balance (After): %s" % [ x.getinfo()["balance"] for x in self.nodes])
+        logging.info("### Balance (After): %s" % [ x.getinfo()["balance"] for x in self.nodes])
 
 
         debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
         credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
-        print("Balance of Spending Node(%s) " %debit_after)
-        print("=> Balance of Receiving Node(%s) " %credit_after)
+        logging.info("Balance of Spending Node(%s) " %debit_after)
+        logging.info("=> Balance of Receiving Node(%s) " %credit_after)
 
         # credit after transaction confirmed is increased by amount
         assert( (credit_after - credit_before) == amount)
@@ -144,8 +140,8 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
 
         debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
         credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
-        print("Balance of Spending Node(%s) " %debit_after)
-        print("=> Balance of Receiving Node(%s) " %credit_after)
+        logging.info("Balance of Spending Node(%s) " %debit_after)
+        logging.info("=> Balance of Receiving Node(%s) " %credit_after)
         
         # credit and debit after transaction confirmed is the same
         assert( debit_after == credit_after )
@@ -155,8 +151,8 @@ def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
         
         debit_after = self.nodes[nodeTxOut].getinfo()["balance"]
         credit_after = self.nodes[nodeTxIn].getinfo()["balance"]
-        print("Sync_all Balance of Spending Node(%s) " %debit_after)
-        print("=> Sync_all Balance of Receiving Node(%s) " %credit_after)
+        logging.info("Sync_all Balance of Spending Node(%s) " %debit_after)
+        logging.info("=> Sync_all Balance of Receiving Node(%s) " %credit_after)
         
         # credit and debit after sync_all should still be the same
         assert( debit_after == credit_after )
@@ -169,7 +165,7 @@ def verify_sendto_same_node(self, amount):
         amount : amount to spend in BTC
     """
     
-    print("*** Same Nodes ****")
+    logging.info("*** Same Nodes ****")
     # send amount to self (from Node 0 to 0)
     verify_transaction_amount_confirm(self, 0, 0, amount)
     # send amount to self (from Node 1 to 1)
@@ -187,7 +183,7 @@ def verify_sendto_different_node(self, amount):
         amount : amount to spend in BTC
     """
     
-    print("*** Different Nodes ****")
+    logging.info("*** Different Nodes ****")
     # send amount from Node 0 to 1 
     verify_transaction_amount_confirm(self, 0, 1, amount)
     # send amount from Node 0 to 2 
@@ -212,7 +208,7 @@ class CTest(BitcoinTestFramework):
 
     def setup_network(self, split=False):
         bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
-        print(bins)
+        logging.info(bins)
         self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=bins, timewait=60*60)
 
         # Connect each node to the other
@@ -228,22 +224,22 @@ class CTest(BitcoinTestFramework):
 
     def run_test(self):
         # #########
-        print("Verify that all nodes are connected")
+        logging.info("Verify that all nodes are connected")
         verifyInterconnect(self.nodes)
 
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
-        print("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
+        logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        logging.info("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
 
         # #########
-        print("Verify that every node can produce blocks and that every other node receives them")
+        logging.info("Verify that every node can produce blocks and that every other node receives them")
         for n in self.nodes:
             n.generate(num_blocks)
             sync_blocks(self.nodes)
 
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
 
         # #########
-        print("Verify that every node can produce P2PKH transactions and that every other node receives them")
+        logging.info("Verify that every node can produce P2PKH transactions and that every other node receives them")
         # first get mature coins in every client
         self.nodes[0].generate(101)
         sync_blocks(self.nodes)
@@ -253,38 +249,37 @@ class CTest(BitcoinTestFramework):
             n.sendtoaddress(addr, 1)
             sync_mempools(self.nodes)
 
-        print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
+        logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
-        print("Verify that a block with P2PKH txns is accepted by all nodes and clears the mempool on all nodes")
+        logging.info("Verify that a block with P2PKH txns is accepted by all nodes and clears the mempool on all nodes")
         self.nodes[0].generate(1)
         sync_blocks(self.nodes)
-        print("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
+        logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
-        print("Verify transaction amounts and confirmation counts between two nodes")
+        logging.info("Verify transaction amounts and confirmation counts between two nodes")
         verify_sendto_different_node(self, 10)
         
-        print("Verify transaction amounts on the same nodes")
+        logging.info("Verify transaction amounts on the same nodes")
         verify_sendto_same_node(self, 10)
         
-        print("Verify transaction amounts and confirmation counts between two nodes")
+        logging.info("Verify transaction amounts and confirmation counts between two nodes")
         verify_sendto_different_node(self, 0.5)
         
-        print("Verify transaction amounts on the same nodes")
+        logging.info("Verify transaction amounts on the same nodes")
         verify_sendto_same_node(self, 0.5)
         
-        time.sleep(10)
-        print("Verify transaction using sendmany and createmultisig APIs : Node 0 to 1")
+        logging.info("Verify transaction using sendmany and createmultisig APIs : Node 0 to 1")
         verify_transaction_sendmany(self, 0, 1, 1)
         
         # Comment out for now because sometimes got : 
         # JSONRPC error: importaddress "address" ( "label" rescan )
         # Note: This call can take minutes to complete if rescan is true.
 #        time.sleep(10)
-#        print("Verify transaction using sendmany and createmultisig APIs : Node 1 to 2")
+#        logging.info("Verify transaction using sendmany and createmultisig APIs : Node 1 to 2")
 #        verify_transaction_sendmany(self, 1, 2, 1)
         
 #        time.sleep(10)
-#        print("Verify transaction using sendmany and createmultisig APIs : Node 2 to 3")
+#        logging.info("Verify transaction using sendmany and createmultisig APIs : Node 2 to 3")
 #        verify_transaction_sendmany(self, 2, 3, 1)
 
         
@@ -301,7 +296,7 @@ def Test():
     for arg in sys.argv[1:]:
         if (("--tmpdir=" or "--tmpdir =") in arg):
             tmpdir = str(arg)
-            print("# User input : %s" %tmpdir)
+            logging.info("# User input : %s" %tmpdir)
     
     t.main([tmpdir], bitcoinConf, None)
 
