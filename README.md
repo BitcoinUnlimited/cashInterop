@@ -63,3 +63,17 @@ Building Project
 	$ ls -la xt/debug/src/bitcoin* 
 	$ ls -la abc/debug/src/bitcoin* 
 	```
+
+Running tests
+=================
+1. All available tests are located in the test folder. 
+Default folder location for storing bitcoin data and log files is set to /tmp/cashInterop
+
+2. You can overwrite this location by using option --tmpdir=<folder_location>. Please note that no
+space is allowed before and after the equal sign. 
+Second example below creates folder "testlogs" in the same place as the script.
+
+	```
+	$ ./example_test.py --tmpdir=/tmp/logfolder
+	$ ./example_test.py --tmpdir=testlogs
+	```
