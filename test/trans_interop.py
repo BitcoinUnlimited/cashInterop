@@ -73,10 +73,10 @@ def verify_transaction_createmultisig(self, nodeTxOne, nodeTxTwo, num_signature)
     """
     Verify the transaction of BTC using
     "createmultisig" to create a P2SH multi-signature address
-
+    
     See Bitcoin API JSON-RPC:
     > https://chainquery.com/bitcoin-api/creatmultisig
-
+    
     Input:
         nodeTxOut : node Id of the TxOut (debit)
         nodeTxIn : node Id of the TxIn (credit)
@@ -92,7 +92,7 @@ def verify_transaction_createmultisig(self, nodeTxOne, nodeTxTwo, num_signature)
     assert_array_result(self.nodes[nodeTxOne].listtransactions("watchonly", 100, 0, True),
                        {"category":"receive","amount":Decimal("0.1")},
                        {"txid":txid, "account" : "watchonly"} )
-
+                
 def verify_transaction_amount_confirm(self, nodeTxOut, nodeTxIn, amount):
     """
     Verify the transaction of BTC amount and confirmation from one node to the other
@@ -216,7 +216,7 @@ def verify_createmultisig(self, node1, node2, num_signature):
     
     See Bitcoin API JSON-RPC:
     > https://chainquery.com/bitcoin-api/creatmultisig
-
+    
     Input:
         node1 : node 1 involved in the transaction
         node2 : node 2 involved in the transaction
@@ -318,6 +318,7 @@ class CTest(BitcoinTestFramework):
         logging.info("Verify transaction using sendmany and createmultisig APIs : Node 2 to 3")
         verify_sendmany(self, 2, 3)
         verify_createmultisig(self, 2, 3, 1)
+        
         reporter.display_report()
         
 def Test():
