@@ -34,6 +34,8 @@ class TCReporter(object):
     """
     def __init__(self):
         self.testcases = []
+        self.failcount = 0
+        self.passcount = 0
 
     def add_testcase(self, testcase):
         self.testcases.append(testcase)
@@ -41,10 +43,12 @@ class TCReporter(object):
     def display_report(self):
         for tc in self.testcases:
             if (tc['status'] == "pass"):
+                self.passcount +=1
                 msg = " ... " + "\n" + \
                     "Name: " + tc['name'] + "\n" + \
                     "Status: " + tc['status'] + "\n"
             else:
+                self.failcount +=1
                 msg = "\n" + "=================== Fail ===================" + "\n" + \
                     "Name: " + tc['name'] + "\n" + \
                     "File Name: " + str(tc['fname']) + "\n" + \
@@ -59,7 +63,13 @@ class TCReporter(object):
                     "============================================" + "\n"
 
             logging.info(msg)
-
+        
+        result = "\n" +  "---------------------- " + "\n" + \
+                "Total Pass : " + str(self.passcount) + "\n" + \
+                "Total Fail : " + str(self.failcount) + "\n"
+                    
+        logging.info(result)
+        
 reporter = TCReporter()
 
 def assert_capture(*args, **kwargs):
