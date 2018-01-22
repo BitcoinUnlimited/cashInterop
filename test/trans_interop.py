@@ -176,6 +176,8 @@ def verify_amount_sendto_nodes(self, node1, node2, amount):
         node1 : node 1 involved in the transaction
         node2 : node 2 involved in the transaction
         amount : amount to spend in BTC
+    Exception:
+        if invalid bitcoin address is detected
     """
 
     try:
@@ -196,6 +198,8 @@ def verify_sendmany(self, node1, node2):
     Input:
         node1 : node 1 involved in the transaction
         node2 : node 2 involved in the transaction
+    Exception:
+        if invalid bitcoin address is detected
     """
 
     try:
@@ -221,6 +225,8 @@ def verify_createmultisig(self, node1, node2, num_signature):
         node1 : node 1 involved in the transaction
         node2 : node 2 involved in the transaction
         num_signature : number of signatures required
+    Exception:
+        if invalid bitcoin address is detected
     """
 
     try:
@@ -260,14 +266,12 @@ class CTest(BitcoinTestFramework):
         self.sync_all()
 
     def run_test(self):
-        # #########
         logging.info("Verify that all nodes are connected")
         verifyInterconnect(self.nodes)
 
         logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
         logging.info("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
 
-        # #########
         logging.info("Verify that every node can produce blocks and that every other node receives them")
         for n in self.nodes:
             n.generate(num_blocks)
@@ -275,7 +279,6 @@ class CTest(BitcoinTestFramework):
 
         logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
 
-        # #########
         logging.info("Verify that every node can produce P2PKH transactions and that every other node receives them")
         # first get mature coins in every client
         self.nodes[0].generate(101)

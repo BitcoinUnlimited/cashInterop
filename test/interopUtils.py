@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright (c) 2015-2017 The Bitcoin Unlimited developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
 import logging
 import os
 import sys
@@ -69,6 +73,8 @@ class TCReporter(object):
                 "Total Fail : " + str(self.failcount) + "\n"
                     
         logging.info(result)
+        # uncomment to inform CI for test failure
+        # assert(self.failcount == 0)
         
 reporter = TCReporter()
 
@@ -85,7 +91,6 @@ def assert_capture(*args, **kwargs):
             try:
                 func(*args, **kwargs)
                 tc['status'] = 'pass'
-            #except AssertionError:
             except AssertionError as e:
                 tc['status'] = 'fail'
                 messages = e.args[0]
