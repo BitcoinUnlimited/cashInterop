@@ -59,7 +59,7 @@ Building Project
 3. Verify client executables (bitcoind and bitcoin-cli) are built successfully within debug folder
 
 	```
-	$ ls -la bu/debug/src/bitcoin* 
+	$ ls -la bucash/debug/src/bitcoin* 
 	$ ls -la xt/debug/src/bitcoin* 
 	$ ls -la abc/debug/src/bitcoin* 
 	```
