@@ -12,6 +12,12 @@ CLASSIC_CONF_FLAGS:=$(COMMON_CONF_FLAGS) --enable-uahf
 
 all: bu abc xt
 
+clean:
+	-(cd bucash/$(VARIANT); make clean)
+	-(cd xt/$(VARIANT); make clean)
+	-(cd abc/$(VARIANT); make clean)
+#	(cd classic; make clean)
+
 
 bu:
 	(cd bucash; ./autogen.sh)

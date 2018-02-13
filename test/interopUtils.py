@@ -15,6 +15,9 @@ global reporter
 clientDirs = ["bucash", "bucash", "bucash", "bucash"]
 clientSubvers = set(["BUCash"])
 
+#clientDirs = ["bucash", "bucash", "bucash", "bucash"]
+#clientSubvers = set(["BUCash"])
+
 def subverParseClient(s):
     """return the client name given a subversion string"""
     return s[1:].split(":")[0]

@@ -23,6 +23,7 @@ from interopUtils import *
 # number of block used for generate function
 num_blocks = 20
 
+@assert_capture()
 def verify_chain_tip_syncblk(self, nodeId):
     """
     Verify the main chain of all known tips in the block tree
@@ -65,6 +66,7 @@ class CTest(BitcoinTestFramework):
         self.is_network_split=False
         self.sync_all()
 
+    @assert_capture()
     def run_test(self):
         # #########
         logging.info("Verify that all nodes are connected")
@@ -86,7 +88,7 @@ class CTest(BitcoinTestFramework):
         #sync_blocks(self.nodes)
 
         logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
-        
+
         # #########
         print("Verify main chain blocklen, status, and height after sync_blocks")
         verify_chain_tip_syncblk(self,0)
@@ -113,6 +115,7 @@ class CTest(BitcoinTestFramework):
         sync_blocks(self.nodes)
         logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
+        reporter.display_report()
 
 def Test():
     t = CTest("debug", clientDirs)
@@ -123,12 +126,12 @@ def Test():
     }
     # folder to store bitcoin runtime data and logs
     tmpdir = "--tmpdir=/tmp/cashInterop"
-    
+
     for arg in sys.argv[1:]:
         if "--tmpdir=" in arg:
             tmpdir = str(arg)
             logging.info("# User input : %s" %tmpdir)
-    
+
     t.main([tmpdir], bitcoinConf, None)
 
 if __name__ == "__main__":

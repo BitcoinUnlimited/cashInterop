@@ -429,11 +429,11 @@ class TestInterOpExcessive(BitcoinTestFramework):
         self.buildVariant = build_variant
         self.clientDirs = client_dirs
         self.extended = extended
+        self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
+        logging.info(self.bins)
 
     def setup_network(self, split=False):
-        bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
-        logging.info(bins)
-        self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=bins, timewait=60*60)
+        self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=self.bins, timewait=60*60)
 
         # Connect each node to the other
         connect_nodes_bi(self.nodes,0,1)
@@ -505,7 +505,7 @@ class TestInterOpExcessive(BitcoinTestFramework):
         logging.info("block %d size %d" % (inf["height"], inf["size"]))
         return hsh
 
-def Test(longTest):
+def main(longTest):
     t = TestInterOpExcessive("debug", clientDirs, longTest)
     t.drop_to_pdb = True
     bitcoinConf = {
@@ -521,6 +521,9 @@ def Test(longTest):
             logging.info("# User input : %s" %tmpdir)
 
     t.main([tmpdir], bitcoinConf, None)
+
+def Test():
+    main(False)
 
 if __name__ == "__main__":
     if "--extensive" in sys.argv:
