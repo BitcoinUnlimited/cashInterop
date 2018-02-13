@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 import os 
+import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 base_dir = os.path.join(dir_path, "..")
 
@@ -27,8 +28,8 @@ def verify_chain_tip(self, nodeId):
         nodeId - index of the client in the self.nodes[] list
     """
     tips = self.nodes[nodeId].getchaintips()
-    print(len(tips))
-    print(tips)
+    logging.info(len(tips))
+    logging.info(tips)
     assert_equal(tips[0]['branchlen'], 0)
     assert_equal(tips[0]['status'], 'active')
 
@@ -45,7 +46,7 @@ class MyTest(BitcoinTestFramework):
 
     def setup_network(self, split=False):
         bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
-        print(bins)
+        logging.info(bins)
         self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=bins, timewait=60*60)
 
         # Connect each node to the other
@@ -60,14 +61,13 @@ class MyTest(BitcoinTestFramework):
         self.sync_all()
 
     def run_test(self):
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
-        print("peers: %s" % ([ x.getpeerinfo() for x in self.nodes]))
+        logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        # logging.info("peers: %s" % ([ x.getpeerinfo() for x in self.nodes]))
         for n in self.nodes[0:3]:
             n.generate(10)
         time.sleep(5)
-        #self.nodes[3].generate(10, coinbase) # classic is different
-        print("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
-        print("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
+        logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
+        logging.info("Connection count: %s" % ([ x.getconnectioncount() for x in self.nodes]))
 
         # verify main chain tip branchlen and status
         verify_chain_tip(self, 0)
@@ -83,11 +83,15 @@ def Test():
         "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],
         "blockprioritysize": 2000000  # we don't want any transactions rejected due to insufficient fees...
     }
-    # "--tmpdir=/ramdisk/test",
-    #t.main(["--nocleanup", "--noshutdown"], bitcoinConf, None)
-    eachConf = [bitcoinConf]*4
-    # eachConf[3]["maxlimitertxfee"] = None  # classic does not have this option
-    t.main(["--tmpdir=/ramdisk/test"], bitcoinConf, None)
+    # folder to store bitcoin runtime data and logs
+    tmpdir = "--tmpdir=/tmp/cashInterop"
+    
+    for arg in sys.argv[1:]:
+        if "--tmpdir=" in arg:
+            tmpdir = str(arg)
+            logging.info("# User input : %s" %tmpdir)
+    
+    t.main([tmpdir], bitcoinConf, None)
 
 if __name__ == "__main__":
     Test()
