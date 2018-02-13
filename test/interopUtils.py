@@ -9,11 +9,8 @@ global reporter
 
 #clientDirs = ["bucash", "abc", "xt", "classic"]
 #clientSubvers = set(["Bitcoin ABC", "Classic", "Bitcoin XT", "BUCash"])
-#clientDirs = ["bucash", "abc", "xt", "bucash"]
-#clientSubvers = set(["Bitcoin ABC", "Bitcoin XT", "BUCash"])
-
-clientDirs = ["bucash", "bucash", "bucash", "bucash"]
-clientSubvers = set(["BUCash"])
+clientDirs = ["bucash", "abc", "xt", "bucash"]
+clientSubvers = set(["Bitcoin ABC", "Bitcoin XT", "BUCash"])
 
 #clientDirs = ["bucash", "bucash", "bucash", "bucash"]
 #clientSubvers = set(["BUCash"])
