@@ -34,7 +34,9 @@ invalidOpReturn = hexlify(b'Bitcoin: A Peer-to-Peer Electronic Cash System')
 SCRIPT_WORDS = b"this is junk data len125.this is junk data len125.this is junk data len125.this is junk data len125.this is junk data len125."
 TX_DATA = '54686973206973203830206279746573206f6620746573742064617461206372656174656420746f20757365207570207472616e73616374696f6e20737061636520666173746572202e2e2e2e2e2e2e'
 # number of iteration used to create a 250Kb of wasteful output  of SCRIPT_WORDS
-ITERATIONS_PER_250K = 250 
+#ITERATIONS_PER_250K = 250
+ITERATIONS_PER_100K = 100
+
 
 SIZE_1_MB = 1000000
 SIZE_4_MB = 4000000
@@ -85,7 +87,7 @@ def decodeBase58(s):
 
 def wastefulOutput(btcAddress):
     """ 
-    Create useless data for the CScript. Txn block size of about 250KB
+    Create useless data for the CScript. Txn block size of about 100KB
     There are 8 Vouts and 1 Vin in each transaction (see createrawtransaction).
     Input:
         btcAddress : BTC address - public key of the receive
@@ -94,7 +96,7 @@ def wastefulOutput(btcAddress):
     Warning: Creates outputs that can't be spent by bitcoind
     """
     data = b""
-    for _ in range(ITERATIONS_PER_250K):
+    for _ in range(ITERATIONS_PER_100K):
         data += SCRIPT_WORDS
     #logging.info("> Length of Junk data : %d" % len(data))
     
