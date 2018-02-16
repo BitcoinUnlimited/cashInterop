@@ -307,7 +307,7 @@ def test_accept_depth(self, nodeOneId, nodeTwoId):
 @assert_capture()
 def test_excessive_Sigops(self):
     """
-    This test checks the behavior of the nodes in the presence of transactions that take a long time to validate.
+    Test Excessive Sig Ops
     
     Note: Re-use existing test from BU/qa/rpc-tests/excessive.py
     Input:
@@ -315,106 +315,113 @@ def test_excessive_Sigops(self):
     """
     logging.info("Entered : test_excessive_Sigops \n")
     try:
-        NUM_ADDRS = 50
-        logging.info("testExcessiveSigops: Cleaning up node state")
-
-        # We are not testing excessively sized blocks so make these large
-        self.nodes[0].set("net.excessiveBlock=5000000")
-        self.nodes[1].set("net.excessiveBlock=5000000")
-        self.nodes[2].set("net.excessiveBlock=5000000")
-        self.nodes[3].set("net.excessiveBlock=5000000")
-        self.nodes[0].setminingmaxblock(FIVE_MB)
-        self.nodes[1].setminingmaxblock(FIVE_MB)
-        self.nodes[2].setminingmaxblock(FIVE_MB)
-        self.nodes[3].setminingmaxblock(FIVE_MB)
-        # Stagger the accept depths so we can see the block accepted stepwise
-        self.nodes[0].set("net.excessiveAcceptDepth=0")
-        self.nodes[1].set("net.excessiveAcceptDepth=1")
-        self.nodes[2].set("net.excessiveAcceptDepth=2")
-        self.nodes[3].set("net.excessiveAcceptDepth=3")
-
-        for n in self.nodes:
-            n.generate(10)
-            self.sync_blocks()
-
-        self.nodes[0].generate(100)  # create a lot of BTC for spending
-        self.sync_all()
-
-        self.nodes[0].set("net.excessiveSigopsPerMb=100")  # Set low so txns will fail if its used
-        self.nodes[1].set("net.excessiveSigopsPerMb=5000")
-        self.nodes[2].set("net.excessiveSigopsPerMb=1000")
-        self.nodes[3].set("net.excessiveSigopsPerMb=100")
-
-        logging.info("Creating addresses...")
-        self.nodes[0].keypoolrefill(NUM_ADDRS)
-        addrs = [self.nodes[0].getnewaddress() for _ in range(NUM_ADDRS)]
-
-        # test that a < 1MB block ignores the sigops parameter
-        self.nodes[0].setminingmaxblock(ONE_MB)
-        # if excessive Sigops was heeded, this txn would not make it into the block
-        self.createUtxos(self.nodes[0], addrs, NUM_ADDRS)
-        mpool = self.nodes[0].getmempoolinfo()
-        assert_equal(mpool["size"], 0)
-
-        # test that a < 1MB block ignores the sigops parameter, even if the max block size is less
-        self.nodes[0].setminingmaxblock(FIVE_MB)
-        # if excessive Sigops was heeded, this txn would not make it into the block
-        self.createUtxos(self.nodes[0], addrs, NUM_ADDRS)
-        mpool = self.nodes[0].getmempoolinfo()
-        assert_equal(mpool["size"], 0)
-        if self.extended:  # creating 1MB+ blocks is too slow for travis due to the signing cost
-            logging.info("*** Running Extended tests ***\n")
-            self.createUtxos(self.nodes[0], addrs, 10000)  # we need a lot to generate 1MB+ blocks
-            wallet = self.nodes[0].listunspent()
-            wallet.sort(key=lambda x: x["amount"], reverse=True)
-            self.nodes[0].set("net.excessiveSigopsPerMb=100000")  # Set this huge so all txns are accepted by this node
-
-            logging.info("Generate > 1MB block with excessive sigops")
-            generateTx(self.nodes[0], 1100000, addrs)
-
-            counts = [x.getblockcount() for x in self.nodes]
-            base = counts[0]
-            self.nodes[0].generate(1)
-            assert_equal(True, self.expectHeights([base + 1, base, base, base], 30))
-
-            logging.info("Test excessive block propagation to nodes with different AD")
-            self.nodes[0].generate(1)
-            # it takes a while to sync all the txns
-            assert_equal(True, self.expectHeights([base + 2, base + 2, base, base], 500))
-
-            self.nodes[0].generate(1)
-            assert_equal(True, self.expectHeights([base + 3, base + 3, base + 3, base], 90))
-
-            self.nodes[0].generate(1)
-            assert_equal(True, self.expectHeights([base + 4, base + 4, base + 4, base + 4], 90))
-
-        logging.info("Excessive sigops test completed")
-
-        # set it all back to defaults
-        for n in self.nodes:
-            n.generate(150)
-            self.sync_blocks()
-
-        self.nodes[0].set("net.excessiveSigopsPerMb=20000")  # Set low so txns will fail if its used
-        self.nodes[1].set("net.excessiveSigopsPerMb=20000")
-        self.nodes[2].set("net.excessiveSigopsPerMb=20000")
-        self.nodes[3].set("net.excessiveSigopsPerMb=20000")
-
-        self.nodes[0].setminingmaxblock(ONE_MB)
-        self.nodes[1].setminingmaxblock(ONE_MB)
-        self.nodes[2].setminingmaxblock(ONE_MB)
-        self.nodes[3].setminingmaxblock(ONE_MB)
-        self.nodes[0].set("net.excessiveBlock=1000000")
-        self.nodes[1].set("net.excessiveBlock=1000000")
-        self.nodes[2].set("net.excessiveBlock=1000000")
-        self.nodes[3].set("net.excessiveBlock=1000000")
+        testExcessiveSigops(self)
     except (Exception, JSONRPCException) as e1:
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
-                       "n1" : self.bins[0], "n2" : self.bins[1], "amount" : "N/A", "numsig" : "N/A"})
+                       "n1" : "N/A", "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
+
+def testExcessiveSigops(self):
+    """This test checks the behavior of the nodes in the presence of transactions that take a long time to validate.
+    """
+    NUM_ADDRS = 50
+    logging.info("testExcessiveSigops: Cleaning up node state")
+
+    # We are not testing excessively sized blocks so make these large
+    self.nodes[0].set("net.excessiveBlock=5000000")
+    self.nodes[1].set("net.excessiveBlock=5000000")
+    self.nodes[2].set("net.excessiveBlock=5000000")
+    self.nodes[3].set("net.excessiveBlock=5000000")
+    self.nodes[0].setminingmaxblock(FIVE_MB)
+    self.nodes[1].setminingmaxblock(FIVE_MB)
+    self.nodes[2].setminingmaxblock(FIVE_MB)
+    self.nodes[3].setminingmaxblock(FIVE_MB)
+    # Stagger the accept depths so we can see the block accepted stepwise
+    self.nodes[0].set("net.excessiveAcceptDepth=0")
+    self.nodes[1].set("net.excessiveAcceptDepth=1")
+    self.nodes[2].set("net.excessiveAcceptDepth=2")
+    self.nodes[3].set("net.excessiveAcceptDepth=3")
+
+    for n in self.nodes:
+        n.generate(10)
+        self.sync_blocks()
+
+    self.nodes[0].generate(100)  # create a lot of BTC for spending
+    self.sync_all()
+
+    self.nodes[0].set("net.excessiveSigopsPerMb=100")  # Set low so txns will fail if its used
+    self.nodes[1].set("net.excessiveSigopsPerMb=5000")
+    self.nodes[2].set("net.excessiveSigopsPerMb=1000")
+    self.nodes[3].set("net.excessiveSigopsPerMb=100")
+
+    logging.info("Creating addresses...")
+    self.nodes[0].keypoolrefill(NUM_ADDRS)
+    addrs = [self.nodes[0].getnewaddress() for _ in range(NUM_ADDRS)]
+
+    # test that a < 1MB block ignores the sigops parameter
+    self.nodes[0].setminingmaxblock(ONE_MB)
+    # if excessive Sigops was heeded, this txn would not make it into the block
+    self.createUtxos(self.nodes[0], addrs, NUM_ADDRS)
+    mpool = self.nodes[0].getmempoolinfo()
+    assert_equal(mpool["size"], 0)
+
+    # test that a < 1MB block ignores the sigops parameter, even if the max block size is less
+    self.nodes[0].setminingmaxblock(FIVE_MB)
+    # if excessive Sigops was heeded, this txn would not make it into the block
+    self.createUtxos(self.nodes[0], addrs, NUM_ADDRS)
+    mpool = self.nodes[0].getmempoolinfo()
+    assert_equal(mpool["size"], 0)
+
+    if self.extended:  # creating 1MB+ blocks is too slow for travis due to the signing cost
+        self.createUtxos(self.nodes[0], addrs, 10000)  # we need a lot to generate 1MB+ blocks
+
+        wallet = self.nodes[0].listunspent()
+        wallet.sort(key=lambda x: x["amount"], reverse=True)
+        self.nodes[0].set("net.excessiveSigopsPerMb=100000")  # Set this huge so all txns are accepted by this node
+
+        logging.info("Generate > 1MB block with excessive sigops")
+        generateTx(self.nodes[0], 1100000, addrs)
+
+        counts = [x.getblockcount() for x in self.nodes]
+        base = counts[0]
+
+        self.nodes[0].generate(1)
+        assert_equal(True, self.expectHeights([base + 1, base, base, base], 30))
+
+        logging.info("Test excessive block propagation to nodes with different AD")
+        self.nodes[0].generate(1)
+        # it takes a while to sync all the txns
+        assert_equal(True, self.expectHeights([base + 2, base + 2, base, base], 500))
+
+        self.nodes[0].generate(1)
+        assert_equal(True, self.expectHeights([base + 3, base + 3, base + 3, base], 90))
+
+        self.nodes[0].generate(1)
+        assert_equal(True, self.expectHeights([base + 4, base + 4, base + 4, base + 4], 90))
+
+    logging.info("Excessive sigops test completed")
+
+    # set it all back to defaults
+    for n in self.nodes:
+        n.generate(150)
+        self.sync_blocks()
+
+    self.nodes[0].set("net.excessiveSigopsPerMb=20000")  # Set low so txns will fail if its used
+    self.nodes[1].set("net.excessiveSigopsPerMb=20000")
+    self.nodes[2].set("net.excessiveSigopsPerMb=20000")
+    self.nodes[3].set("net.excessiveSigopsPerMb=20000")
+
+    self.nodes[0].setminingmaxblock(ONE_MB)
+    self.nodes[1].setminingmaxblock(ONE_MB)
+    self.nodes[2].setminingmaxblock(ONE_MB)
+    self.nodes[3].setminingmaxblock(ONE_MB)
+    self.nodes[0].set("net.excessiveBlock=1000000")
+    self.nodes[1].set("net.excessiveBlock=1000000")
+    self.nodes[2].set("net.excessiveBlock=1000000")
+    self.nodes[3].set("net.excessiveBlock=1000000")
 
 class TestInterOpExcessive(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs, extended=False):
@@ -424,10 +431,6 @@ class TestInterOpExcessive(BitcoinTestFramework):
         self.extended = extended
         self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
         logging.info(self.bins)
-
-    def setup_chain(self,bitcoinConfDict=None, wallets=None):
-        logging.info("Initializing test directory "+self.options.tmpdir)
-        initialize_chain_clean(self.options.tmpdir, len(self.clientDirs), bitcoinConfDict, wallets)
 
     def setup_network(self, split=False):
         self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=self.bins, timewait=60*60)
