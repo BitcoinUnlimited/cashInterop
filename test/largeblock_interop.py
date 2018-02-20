@@ -21,6 +21,8 @@ from test_framework.script import *
 from test_framework.blocktools import *
 from test_framework.bunode import *
 import test_framework.script as script
+from test_framework.mininode import COIN
+
 from interopUtils import *
 
 if sys.version_info[0] < 3:
@@ -38,7 +40,11 @@ TX_DATA = '54686973206973203830206279746573206f662074657374206461746120637265617
 # output from SCRIPT_WORDS
 ITERATIONS_PER_100K = 100
 
+SIZE_250_KB = 250000
+SIZE_500_KB = 500000
+SIZE_750_KB = 750000
 SIZE_1_MB = 1000000
+SIZE_2_MB = 2000000
 SIZE_4_MB = 4000000
 SIZE_8_MB = 8000000
 SIZE_12_MB = 12000000
@@ -132,6 +138,7 @@ def createrawtransaction(inputs, outputs, outScriptGenerator=p2pkh):
         inputs = [inputs]
 
     tx = CTransaction()
+    #print("Inputs : ", inputs)
     for i in inputs:
         tx.vin.append(CTxIn(COutPoint(i["txid"], i["vout"]), b"", 0xffffffff))
     for addr, amount in outputs.items():
@@ -160,6 +167,10 @@ def generateTx(node, txBytes, addrs, data=None):
     wallet = node.listunspent()
     wallet.sort(key=lambda x: x["amount"], reverse=False)
     logging.info("Wallet length is %d" % len(wallet))
+    # parameters for using node.prioritisetransaction  <txid> <priority delta> <fee delta>
+    relayfee = node.getnetworkinfo()['relayfee']
+    priority_delta = 0
+    fee_delta = int(relayfee * COIN*100000)
 
     size = 0
     count = 0
@@ -177,10 +188,19 @@ def generateTx(node, txBytes, addrs, data=None):
             outp[addrs[(count + x) % len(addrs)]] = payment
         if data:
             outp["data"] = data
-        txn = createrawtransaction([utxo], outp, wastefulOutput)
-        signedtxn = node.signrawtransaction(txn)
-        size += len(binascii.unhexlify(signedtxn["hex"]))
-        node.sendrawtransaction(signedtxn["hex"])
+        raw_txn = createrawtransaction([utxo], outp, wastefulOutput)
+        txn_hex = node.signrawtransaction(raw_txn)["hex"]
+        txn_id = node.decoderawtransaction(txn_hex)["txid"]
+        size += len(binascii.unhexlify(txn_hex))  # add up
+        # Need to avoid "insufficient priority"
+        node.prioritisetransaction(txn_id, priority_delta, fee_delta)
+        try:
+            node.sendrawtransaction(txn_hex)
+            #logging.info("Assert that prioritised free transaction is accepted to mempool")
+            assert(txn_id in node.getrawmempool())
+        except (JSONRPCException) as e1:
+            logging.info(e1)
+            assert(txn_id not in node.getrawmempool())
     logging.info("%d tx %d length" % (count, size))
     decimal.getcontext().prec = decContext
     return (count, size)
@@ -257,15 +277,14 @@ def test_disconnect_bucash_node(self):
 
 @assert_capture()
 def test_default_values(self):
-    """ 
+    """
     Test system default values of MG and EB
-    
     Criteria:
     BUIP-HF Technical Specification:
     MB = 2000000
     EB = 8000000
     # Bitcoin Cash node
-    forkTime = 1501590000   #corresponding to Tue 1 Aug 2017 12:20:00 UTC
+    forkMay2018Time = 1526386800    #corresponding to Tue 15 May 2018 12:20:00 UTC
 
     Input:
         self : test object
@@ -281,9 +300,9 @@ def test_default_values(self):
             assert(t['mining.forkExcessiveBlock'] == 8000000)  # REQ-4-1
 
             if int(nodeInfo["localservices"],16)&NODE_BITCOIN_CASH:
-                assert(t['mining.forkTime'] == 1501590000)  # Bitcoin Cash release REQ-2
+                assert(t['mining.forkMay2018Time'] == 1526386800)  # Bitcoin Cash release REQ-2
             else:
-                assert(t['mining.forkTime'] == 0)  # main release default
+                assert(t['mining.forkMay2018Time'] == 0)  # main release default
     except (Exception, JSONRPCException) as e1:
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -308,39 +327,38 @@ def test_set_values_cmdline(self, fblksize=32000000, exblksize=32000000):
     try:
         n = self.nodes[0]
         now = int(time.time())
-        n.set("mining.forkTime=%d" % now)
+        n.set("mining.forkMay2018Time=%d" % now)
 
         n.set("mining.forkExcessiveBlock=%d" % exblksize)
         n.set("mining.forkBlockSize=%d" % fblksize)
 
         n = self.nodes[1]
-        n.set("mining.forkTime=%d" % now, "mining.forkExcessiveBlock=%d" % exblksize, "mining.forkBlockSize=%d" % fblksize)
-
+        n.set("mining.forkMay2018Time=%d" % now, "mining.forkExcessiveBlock=%d" % exblksize, "mining.forkBlockSize=%d" % fblksize)
         # Verify that the values were properly set
         for n in self.nodes[0:2]:
             t = n.get("mining.fork*")
             assert(t['mining.forkBlockSize'] == fblksize)
             assert(t['mining.forkExcessiveBlock'] == exblksize)
-            assert(t['mining.forkTime'] == now)
+            #assert(t['mining.forkTime'] == now)
+            assert(t['mining.forkMay2018Time'] == now)
 
-        self.nodes[3].set("mining.forkTime=0")
+        self.nodes[3].set("mining.forkMay2018Time=0")
         nodeInfo = self.nodes[3].getnetworkinfo()
 
         # if this is a bitcoin cash build, we need to do the cash defaults on our old chain node
-        if int(nodeInfo["localservices"],16)&NODE_BITCOIN_CASH:
-            self.nodes[3].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
-            self.nodes[3].set("net.onlyRelayForkSig=False")
-            self.nodes[2].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
-            self.nodes[2].set("net.onlyRelayForkSig=False")
+#        if int(nodeInfo["localservices"],16)&NODE_BITCOIN_CASH:
+#            self.nodes[3].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
+#            self.nodes[3].set("net.onlyRelayForkSig=False")
+#            self.nodes[2].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
+#            self.nodes[2].set("net.onlyRelayForkSig=False")
         #print("Returning NOW = ", now)
-        self.forkTime = now
     except (Exception, JSONRPCException) as e1:
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
-                       "n1" : "N/A", "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
+                       "n1" : self.bins[0], "n2" : self.bins[1], "amount" : "N/A", "numsig" : "N/A"})
 
 @assert_capture()
 def test_generate_badblock(node):
@@ -349,14 +367,10 @@ def test_generate_badblock(node):
 
     Input:
         addrs : addresses for UTXOs
-        numTxns : number of transactions generate for different block size 
-                  - For 1MB (need 10 txns), 2MB (20 txns), ... , 32MB (320 txns) 
-        data : invalid data for a bad block
     Exception:
         Bad Block is thrown
     """
     logging.info(">>> Entered : test_generate_badblock \n")
-    # TEST 1:   the client refuses to make a < 1MB fork block
     try:
         ret = node.generate(1)
         logging.info(ret)
@@ -378,10 +392,10 @@ def test_generate_wrong_fork(node, txBytes, addrs, data=invalidOpReturn):
     Test to generate a work fork exception
 
     Input:
-        addrs : addresses for UTXOs
-        numTxns : number of transactions generate for different block size 
-                  - For 1MB (need 10 txns), 2MB (20 txns), ... , 32MB (320 txns) 
-        data : invalid data for a bad block
+        node : client object
+        txBytes : number of bytes for the mined block with many transactions each is around 250KB
+        addrs : list of addresses from getnewaddress() for the node
+        data : one of the CTxout to be created if it's available from the input (eg. TX_DATA is used)
     Exception:
         Wrong fork is thrown
     """
@@ -408,10 +422,12 @@ def test_generate_largeblock(self, nodeId1, nodeId2, txBytes, addrs, data=TX_DAT
     Test to cause excessive block generated
 
     Input:
-        addrs : addresses for UTXOs
-        numTxns : number of transactions generate for different block size 
-                  - For 1MB (need 10 txns), 2MB (20 txns), ... , 32MB (320 txns) 
-        data : invalid data for a bad block
+        self : test object
+        nodeId1 : first node ID
+        nodeId2 : second node ID
+        txBytes : number of bytes for the mined block with many transactions each is around 250KB
+        addrs : list of addresses from getnewaddress() for the node
+        data : one of the CTxout to be created if it's available from the input (eg. TX_DATA is used)
     Return:
         N/A
     Exception:
@@ -428,13 +444,13 @@ def test_generate_largeblock(self, nodeId1, nodeId2, txBytes, addrs, data=TX_DAT
         self.nodes[nodeId1].generate(1) # should consume all the rest of the spendable tx
         # The unspendable tx I created on node 0 should not have been relayed to node 1
         mempool = self.nodes[nodeId1].getmempoolinfo()
-        #logging.info(">> Node 1 - mempool size : %d " %mempool["size"])
+        logging.info(">> Node 1 - mempool size : %d " %mempool["size"])
         block_size1 = get_bestblockhash(self.nodes[nodeId1], nodeId1)
         #sync_blocks(self.nodes[0:3])
         sync_blocks(self.nodes[0:2])
         
         mempool = self.nodes[nodeId2].getmempoolinfo()
-        #logging.info(">> Node 0 - mempool size : %d " %mempool["size"])
+        logging.info(">> Node 0 - mempool size : %d " %mempool["size"])
         block_size0 = get_bestblockhash(self.nodes[nodeId2], nodeId2)
         # after sync _blocks, should be equal
         assert_equal(block_size1, block_size0)
@@ -442,72 +458,73 @@ def test_generate_largeblock(self, nodeId1, nodeId2, txBytes, addrs, data=TX_DAT
     except (Exception, JSONRPCException) as e1:
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
+        failed_msg = "blkInfo[size] <= requested " + str(txBytes) + " Bytes"
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
-                       "error_type": exc_type.__name__, "error_msg": str( e1 ), \
-                       "n1" : "N/A", "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
+                       "error_type": exc_type.__name__, "error_msg": str( failed_msg ), \
+                       "n1" : self.bins[nodeId1], "n2" : self.bins[nodeId2], "amount" : "N/A", "numsig" : "N/A"})
 
 @assert_capture()
 def test_generate_sighash(self, nodeId1, nodeId2, txBytes, addrs, data=TX_DATA):
     """ 
-    Test to cause excessive block generated
+    Test to test nodes using different sighash method and synchornization
 
     Input:
-        addrs : addresses for UTXOs
-        numTxns : number of transactions generate for different block size 
-                  - For 1MB (need 10 txns), 2MB (20 txns), ... , 32MB (320 txns) 
-        data : invalid data for a bad block
+        self : test object
+        nodeId1 : first node ID
+        nodeId2 : second node ID
+        txBytes : number of bytes for the mined block with many transactions each is around 250KB
+        addrs : list of addresses from getnewaddress() for the node
+        data : one of the CTxout to be created if it's available from the input (eg. TX_DATA is used)
     Return:
         N/A
     Exception:
-        Excessive block generated is thrown
+        See below
     """
     try:
         # generate blocks and ensure that the other node syncs them
-        self.nodes[1].generate(1)
-        wallet = self.nodes[1].listunspent()
+        self.nodes[nodeId1].generate(1)
+        wallet = self.nodes[nodeId1].listunspent()
         utxo = wallet.pop()
-        #print("\n UTXO = \n", utxo)
-        txn = createrawtransaction([utxo], {self.addrs1[0]:utxo["amount"]}, wastefulOutput)
-        signedtxn = self.nodes[1].signrawtransaction(txn, None, None, "ALL|NOFORKID")
-        signedtxn2 = self.nodes[1].signrawtransaction(txn, None, None,"ALL|FORKID")
+        txn = createrawtransaction([utxo], {addrs[0]:utxo["amount"]}, wastefulOutput)
+        signedtxn = self.nodes[nodeId1].signrawtransaction(txn, None, None, "ALL|NOFORKID")
+        signedtxn2 = self.nodes[nodeId1].signrawtransaction(txn, None, None,"ALL|FORKID")
         assert(signedtxn["hex"] != signedtxn2["hex"])  # they should use a different sighash method
 
         try:
-            self.nodes[3].sendrawtransaction(signedtxn2["hex"])
-            #self.nodes[3].sendrawtransaction(signedtxn["hex"])    # no exception
+            self.nodes[nodeId2].sendrawtransaction(signedtxn2["hex"])
             #assert(0) # should failed
         except JSONRPCException as e:
             assert("mandatory-script-verify-flag-failed" in e.error["message"])
             logging.info("PASS: New sighash rejected from 1MB chain")
 
-        self.nodes[1].sendrawtransaction(signedtxn2["hex"])
+        self.nodes[nodeId1].sendrawtransaction(signedtxn2["hex"])
         try:
-           self.nodes[1].sendrawtransaction(signedtxn["hex"])
+           self.nodes[nodeId1].sendrawtransaction(signedtxn["hex"])
         except JSONRPCException as e:
             assert("txn-mempool-conflict" in e.error["message"])
             logging.info("PASS: submission of new and old sighash txn rejected")
 
-        self.nodes[1].generate(1)
+        self.nodes[nodeId1].generate(1)
         # connect 1 to 3 to propagate these transactions
-        connect_nodes(self.nodes[1],3)
+        connect_nodes(self.nodes[nodeId1], nodeId2)
         # Issue sendtoaddress commands using both the new sighash and the old and ensure that first fails, second works.
-        self.nodes[1].set("wallet.useNewSig=False")
+        self.nodes[nodeId1].set("wallet.useNewSig=False")
         try:
             #txhash2 = self.nodes[1].sendtoaddress(self.addrs[0], 2.345)
-            txhash2 = self.nodes[1].sendtoaddress(self.addrs0[0], 0.345)
+            txhash2 = self.nodes[nodeId1].sendtoaddress(addrs[0], 1.345)
             assert( not "fork must use new sighash")
         except JSONRPCException as e:
             assert("transaction was rejected" in e.error["message"])    # TODO : check if error is correct?
             logging.info("PASS: New sighash rejected from 1MB chain")
-            txhash2 = self.nodes[3].sendtoaddress(self.addrs0[0], 2.345)
+            txhash2 = self.nodes[nodeId2].sendtoaddress(addrs[0], 2.345)
 
-        self.nodes[1].set("wallet.useNewSig=True")
+        self.nodes[nodeId1].set("wallet.useNewSig=True")
         # produce a new sighash transaction using the sendtoaddress API
-        txhash = self.nodes[1].sendtoaddress(self.addrs0[0], 1.234)
-        rawtx = self.nodes[1].getrawtransaction(txhash)
+        txhash = self.nodes[nodeId1].sendtoaddress(addrs[0], 1.234)
+        rawtx = self.nodes[nodeId1].getrawtransaction(txhash)
         try:
-            self.nodes[3].sendrawtransaction(rawtx)
+            self.nodes[nodeId2].sendrawtransaction(rawtx)
             print("ERROR!") # error assert(0)
         except JSONRPCException as e:
             assert("mandatory-script-verify-flag-failed" in e.error["message"])
@@ -519,15 +536,14 @@ def test_generate_sighash(self, nodeId1, nodeId2, txBytes, addrs, data=TX_DATA):
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e.error["message"]), \
-                       "n1" : n, "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
+                       "n1" : self.bins[nodeId1], "n2" : self.bins[nodeId2], "amount" : "N/A", "numsig" : "N/A"})
 
-class MyTest(BitcoinTestFramework):
+class LargeBlkTest(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs, extended=False):
         BitcoinTestFramework.__init__(self)
         self.buildVariant = build_variant
         self.clientDirs = client_dirs
         self.extended = extended
-        self.forkTime = 0
         self.unspendableTx = 0
         self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
         logging.info(self.bins)
@@ -569,10 +585,8 @@ class MyTest(BitcoinTestFramework):
         self.sync_all()
 
     def run_test(self):
-        BitcoinTestFramework.run_test(self)
 
-        test_disconnect_bucash_node(self)
-
+        #test_disconnect_bucash_node(self)
         # Creating UTXOs needed for building tx for large blocks
         NUM_ADDRS = 50
         logging.info("Creating addresses...")
@@ -594,8 +608,10 @@ class MyTest(BitcoinTestFramework):
         self.createUtxos(self.nodes[3], self.addrs3, 3000)
         sync_blocks(self.nodes)
 
+        # TEST 1:  default values 
         test_default_values(self)
-        # create Excessive block generated when this condition is met
+
+        # TEST 2: create Excessive block generated when this condition is met
         test_set_values_cmdline(self, fblksize=SIZE_32_MB, exblksize=SIZE_31_MB)
         base = [x.getblockcount() for x in self.nodes]
         assert_equal(base, [base[0]] * 4)
@@ -607,12 +623,16 @@ class MyTest(BitcoinTestFramework):
         sync_blocks(self.nodes[2:])
         sync_blocks(self.nodes[0:2])
 
-        # TEST 1:   the client refuses to make a < 1MB fork block
+        # TEST 3: client refuses to include invalid op return txns in the first block
+        nodeId1 = 1
+        nodeId2 = 3
+        test_generate_sighash(self, nodeId1, nodeId2, 1000, self.addrs0, data=TX_DATA)
+
+        # TEST 4: test client refuses to make a < 1MB fork block
         test_generate_badblock(self.nodes[0])
 
-        # TEST 2:  the client refuses to include invalid op return txns in the first block
+        # TEST 5: client refuses to include invalid op return txns in the first block
         test_generate_wrong_fork(self.nodes[0], 100000, self.addrs0, data=invalidOpReturn)
-
         logging.info("Building > 1MB block...")
         node = self.nodes[0]
 
@@ -630,23 +650,26 @@ class MyTest(BitcoinTestFramework):
         counts = [x.getblockcount() for x in self.nodes]
         logging.info(counts)
 
+        # TEST 6: test client to generate large block
         # Node 0 and 1 are forking nodes
         id1 = 1
         id2 = 0
+        test_generate_largeblock(self, id1, id2, SIZE_250_KB, self.addrs0, data=TX_DATA)
+        test_generate_largeblock(self, id1, id2, SIZE_500_KB, self.addrs0, data=TX_DATA)
         test_generate_largeblock(self, id1, id2, SIZE_1_MB, self.addrs0, data=TX_DATA)
         test_generate_largeblock(self, id1, id2, SIZE_4_MB, self.addrs0, data=TX_DATA)
         test_generate_largeblock(self, id1, id2, SIZE_8_MB, self.addrs0, data=TX_DATA)
-        #test_generate_largeblock(self, id1, id2, SIZE_12_MB, self.addrs0, data=TX_DATA)
-        #test_generate_largeblock(self, id1, id2, SIZE_20_MB, self.addrs0, data=TX_DATA)
+        test_generate_largeblock(self, id1, id2, SIZE_12_MB, self.addrs0, data=TX_DATA)
+        test_generate_largeblock(self, id1, id2, SIZE_20_MB, self.addrs0, data=TX_DATA)
         #test_generate_largeblock(self, id1, id2, SIZE_24_MB, self.addrs0, data=TX_DATA)
-        #test_generate_largeblock(self, id1, id2, SIZE_28_MB, self.addrs0, data=TX_DATA)
+        test_generate_largeblock(self, id1, id2, SIZE_28_MB, self.addrs0, data=TX_DATA)
         # will cause CreateNewBlock: Excessive block generated:  (code 0) 
         # because of  test_set_values_cmdline(self, fblksize=SIZE_32_MB, exblksize=SIZE_31_MB) 
         test_generate_largeblock(self, id1, id2, SIZE_32_MB, self.addrs0, data=TX_DATA) 
         reporter.display_report()
 
 def main(longTest):
-    t = MyTest("debug", clientDirs, longTest)
+    t = LargeBlkTest("debug", clientDirs, longTest)
     t.drop_to_pdb = True
     bitcoinConf = {
         "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],
