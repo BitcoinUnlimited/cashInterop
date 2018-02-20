@@ -39,15 +39,13 @@ class MyTest(BitcoinTestFramework):
         BitcoinTestFramework.__init__(self)
         self.buildVariant = build_variant
         self.clientDirs = client_dirs
-
-    def setup_chain(self,bitcoinConfDict=None, wallets=None):
-        logging.info("Initializing test directory "+self.options.tmpdir)
-        initialize_chain_clean(self.options.tmpdir, len(self.clientDirs), bitcoinConfDict, wallets)
+        self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
+        logging.info(self.bins)
 
     def setup_network(self, split=False):
         bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
         logging.info(bins)
-        self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=bins, timewait=60*60)
+        self.nodes = start_nodes(len(self.clientDirs), self.options.tmpdir,binary=self.bins, timewait=60*60)
 
         # Connect each node to the other
         connect_nodes_bi(self.nodes,0,1)

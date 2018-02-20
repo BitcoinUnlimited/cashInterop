@@ -162,7 +162,7 @@ def test_default_values(self):
     """    
     logging.info(">>> Entered : test_default_values \n")
     try:
-        for n in self.nodes:
+        for index, n in enumerate(self.nodes):
             nodeInfo = n.getnetworkinfo()
             t = n.get("mining.fork*")
             assert(t['mining.forkBlockSize'] == 2000000)  # REQ-4-2
@@ -178,7 +178,7 @@ def test_default_values(self):
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
-                       "n1" : "N/A", "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
+                       "n1" : self.bins[index], "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
 
 @assert_capture()
 def test_setting_values(self, nodeId=0):
@@ -236,10 +236,10 @@ def test_sync_clear_mempool(self):
     try:
         # clear out the mempool
         mostly_sync_mempools(self.nodes)
-        for n in self.nodes:
+        for index1, n in enumerate(self.nodes):
             n.generate(2)
             sync_blocks(self.nodes)
-        for n in self.nodes:
+        for index2, n in enumerate(self.nodes):
             while len(n.getrawmempool()):
                 n.generate(1)
                 sync_blocks(self.nodes)
@@ -252,7 +252,7 @@ def test_sync_clear_mempool(self):
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
-                       "n1" : "N/A", "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
+                       "n1" : self.bins[index1], "n2" : self.bins[index2], "amount" : "N/A", "numsig" : "N/A"})
 
 @assert_capture()
 def test_accept_depth(self, nodeOneId, nodeTwoId):
@@ -302,11 +302,11 @@ def test_accept_depth(self, nodeOneId, nodeTwoId):
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
-                       "n1" : self.nodes[nodeOneId], "n2" : self.nodes[nodeTwoId], "amount" : "N/A", "numsig" : "N/A"})
+                       "n1" : self.bins[nodeOneId], "n2" : self.bins[nodeTwoId], "amount" : "N/A", "numsig" : "N/A"})
 
 @assert_capture()
 def test_excessive_Sigops(self):
-    """ 
+    """
     Test Excessive Sig Ops
     
     Note: Re-use existing test from BU/qa/rpc-tests/excessive.py
@@ -457,6 +457,10 @@ class TestInterOpExcessive(BitcoinTestFramework):
         test_setting_values(self, nodeId=3)
 
         test_sync_clear_mempool(self)
+
+        # Fixed-6: Insufficient funds
+        self.nodes[0].generate(101)
+        sync_blocks(self.nodes)
         test_accept_depth(self, nodeOneId=0, nodeTwoId=1)
 
         test_excessive_Sigops(self)
@@ -522,8 +526,11 @@ def main(longTest):
 
     t.main([tmpdir], bitcoinConf, None)
 
-def Test():
-    main(False)
+def Test(longTest=False):
+    if str(longTest).lower() == 'true':
+        main(True)
+    else:
+        main(False)
 
 if __name__ == "__main__":
     if "--extensive" in sys.argv:
