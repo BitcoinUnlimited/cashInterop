@@ -176,7 +176,7 @@ def test_default_values(self):
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
+        raise TestAssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
                        "n1" : self.bins[index], "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
 
@@ -250,7 +250,7 @@ def test_sync_clear_mempool(self):
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
+        raise TestAssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
                        "n1" : self.bins[index1], "n2" : self.bins[index2], "amount" : "N/A", "numsig" : "N/A"})
 
@@ -300,7 +300,7 @@ def test_accept_depth(self, nodeOneId, nodeTwoId):
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
+        raise TestAssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
                        "n1" : self.bins[nodeOneId], "n2" : self.bins[nodeTwoId], "amount" : "N/A", "numsig" : "N/A"})
 
@@ -320,7 +320,7 @@ def test_excessive_Sigops(self):
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        raise AssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
+        raise TestAssertionError({"file_name": fname, "line_num": exc_tb.tb_lineno, \
                        "error_type": exc_type.__name__, "error_msg": str( e1 ), \
                        "n1" : "N/A", "n2" : "N/A", "amount" : "N/A", "numsig" : "N/A"})
 
@@ -545,4 +545,4 @@ if __name__ == "__main__":
     else:
         longTest = False
 
-    Test(longTest)
+    main(longTest)

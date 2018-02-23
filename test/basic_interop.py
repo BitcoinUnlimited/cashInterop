@@ -45,6 +45,9 @@ class CTest(BitcoinTestFramework):
         BitcoinTestFramework.__init__(self)
         self.buildVariant = build_variant
         self.clientDirs = client_dirs
+        # override the binaries
+        self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
+
 
     def setup_chain(self,bitcoinConfDict=None, wallets=None):
         logging.info("Initializing test directory "+self.options.tmpdir)
@@ -66,8 +69,12 @@ class CTest(BitcoinTestFramework):
         self.is_network_split=False
         self.sync_all()
 
-    @assert_capture()
     def run_test(self):
+        self.test1()
+        reporter.display_report()
+
+    @assert_capture()
+    def test1(self):
         # #########
         logging.info("Verify that all nodes are connected")
         verifyInterconnect(self.nodes)
@@ -98,7 +105,6 @@ class CTest(BitcoinTestFramework):
 
         # #########
         logging.info("Verify that every node can produce P2PKH transactions and that every other node receives them")
-
         # first get mature coins in every client
         self.nodes[0].generate(101)
         sync_blocks(self.nodes)
@@ -115,7 +121,6 @@ class CTest(BitcoinTestFramework):
         sync_blocks(self.nodes)
         logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
-        reporter.display_report()
 
 def Test():
     t = CTest("debug", clientDirs)
@@ -125,7 +130,7 @@ def Test():
         "blockprioritysize": 2000000  # we don't want any transactions rejected due to insufficient fees...
     }
     # folder to store bitcoin runtime data and logs
-    tmpdir = "--tmpdir=/tmp/cashInterop"
+    tmpdir = "--tmpdir=/ramdisk/cashInterop"
 
     for arg in sys.argv[1:]:
         if "--tmpdir=" in arg:

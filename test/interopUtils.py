@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 global reporter
+import pdb
 
 #clientDirs = ["bucash", "abc", "xt", "classic"]
 #clientSubvers = set(["Bitcoin ABC", "Classic", "Bitcoin XT", "BUCash"])
@@ -14,6 +15,9 @@ clientSubvers = set(["Bitcoin ABC", "Bitcoin XT", "BUCash"])
 
 #clientDirs = ["bucash", "bucash", "bucash", "bucash"]
 #clientSubvers = set(["BUCash"])
+
+class TestAssertionError(AssertionError):
+    pass
 
 def subverParseClient(s):
     """return the client name given a subversion string"""
@@ -56,7 +60,16 @@ class TCReporter(object):
                     "Status: " + tc['status'] + "\n"
             else:
                 self.failcount +=1
-                msg = "\n" + "=================== Fail ===================" + "\n" + \
+                if tc["type"] == "assertion":
+                    msg = "\n" + "=================== Fail ===================" + "\n" + \
+                    "Name: " + tc['name'] + "\n" + \
+                    "File Name: " + str(tc['fname']) + "\n" + \
+                    "Line: " + str(tc['line']) + "\n" + \
+                    "Exception Type: " + str(tc['type']) + "\n" + \
+                    "Message: " + str(tc['message'])+ "\n" + \
+                    "============================================" + "\n"
+                else:
+                    msg = "\n" + "=================== Fail ===================" + "\n" + \
                     "Name: " + tc['name'] + "\n" + \
                     "File Name: " + str(tc['fname']) + "\n" + \
                     "Line: " + str(tc['line']) + "\n" + \
@@ -94,7 +107,7 @@ def assert_capture(*args, **kwargs):
             try:
                 func(*args, **kwargs)
                 tc['status'] = 'pass'
-            except AssertionError as e:
+            except TestAssertionError as e:
                 tc['status'] = 'fail'
                 messages = e.args[0]
                 tc['fname'] = messages["file_name"]
@@ -105,6 +118,36 @@ def assert_capture(*args, **kwargs):
                 tc['node2'] = messages["n2"]
                 tc['amount'] = messages["amount"]
                 tc['numsig'] = messages["numsig"]
+            except AssertionError as e:
+                if len(e.args):
+                    tc['message'] = e.args[0]
+                else:
+                    tc['message'] = ""
+                tc['status'] = 'fail'
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                fline = exc_tb.tb_lineno
+                tc['fname'] = fname
+                tc['line'] = fline
+                tc['type'] = "assertion"
+                tc['node1'] = ""
+                tc['node2'] = ""
+                tc['amount'] = ""
+                tc['numsig'] = ""
+            except Exception as e:
+                tc['message'] = str(e)
+                tc['status'] = 'fail'
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                fline = exc_tb.tb_lineno
+                tc['fname'] = fname
+                tc['line'] = fline
+                tc['type'] = "exception"
+                tc['node1'] = ""
+                tc['node2'] = ""
+                tc['amount'] = ""
+                tc['numsig'] = ""
+
             reporter.add_testcase(tc)
         return inner
     return assert_decorator
