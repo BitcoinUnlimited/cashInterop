@@ -59,6 +59,11 @@ class MyTest(BitcoinTestFramework):
         self.sync_all()
 
     def run_test(self):
+        self.test1()
+        reporter.display_report()
+
+    @assert_capture()
+    def test1(self):
         logging.info("block count: %s" % ([ x.getblockcount() for x in self.nodes]))
         # logging.info("peers: %s" % ([ x.getpeerinfo() for x in self.nodes]))
         for n in self.nodes[0:3]:
@@ -72,7 +77,6 @@ class MyTest(BitcoinTestFramework):
         verify_chain_tip(self, 1)
         verify_chain_tip(self, 2)
         verify_chain_tip(self, 3)
-   
 
 def Test():
     t = MyTest("debug", clientDirs)
@@ -83,12 +87,12 @@ def Test():
     }
     # folder to store bitcoin runtime data and logs
     tmpdir = "--tmpdir=/tmp/cashInterop"
-    
+
     for arg in sys.argv[1:]:
         if "--tmpdir=" in arg:
             tmpdir = str(arg)
             logging.info("# User input : %s" %tmpdir)
-    
+
     t.main([tmpdir], bitcoinConf, None)
 
 if __name__ == "__main__":
