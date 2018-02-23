@@ -38,8 +38,12 @@ Both BU and XT may fail to build because of missing package dependencies of libg
 	```
 	$ sudo apt-get install libcurl4-openssl-dev
 	```
+3. Download and install Base58 for converting bitcoin cash legacy addresses. ["base58-0.2.5-py3-none-any.whl"](https://pypi.python.org/pypi/base58)
 
-
+	```
+	$ sudo apt install python3-pip
+	$ pip3 install base58-0.2.5-py3-none-any.whl
+	```
 Building Project
 =====================
 1. Building individual client (i.e. bu, xt or abc) 
