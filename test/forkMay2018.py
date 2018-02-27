@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+# Copyright (c) 2018 The Bitcoin Unlimited developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+import os
+import sys
+dir_path = os.path.dirname(os.path.realpath(__file__))
+base_dir = os.path.join(dir_path, "..")
+
+import pdb
+import binascii
+import time
+import math
+import json
+import logging
+logging.basicConfig(format='%(asctime)s.%(levelname)s: %(message)s', level=logging.INFO)
+
+from test_framework.test_framework import BitcoinTestFramework
+from test_framework.util import *
+from test_framework.blocktools import *
+from interopUtils import *
+import interopNodes
+
+def verify_chain_tip(self, nodeId):
+    """
+    Verify the main chain of all know tips in the block tree
+        branchlen = 0  (numeric) zero for main chain
+        status = active
+    Input:
+        nodeId - index of the client in the self.nodes[] list
+    """
+    tips = self.nodes[nodeId].getchaintips()
+    logging.info(len(tips))
+    logging.info(tips)
+    assert_equal(tips[0]['branchlen'], 0)
+    assert_equal(tips[0]['status'], 'active')
+
+
+class ForkMay2018(BitcoinTestFramework):
+    def __init__(self, build_variant, client_dirs):
+        BitcoinTestFramework.__init__(self)
+        self.buildVariant = build_variant
+        self.clientDirs = client_dirs
+        self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
+        self.forkTime = int(time.time())
+        self.conf = { "forkMay2018time": self.forkTime }
+        logging.info(self.bins)
+
+    def setup_network(self, split=False):
+        logging.info(self.bins)
+
+        self.nodes = interopNodes.start(self.options.tmpdir, clientDirs, self.bins, self.conf)
+
+        # Connect each node to the other
+        connect_nodes_bi(self.nodes,0,1)
+        connect_nodes_bi(self.nodes,0,2)
+        connect_nodes_bi(self.nodes,0,3)
+        connect_nodes_bi(self.nodes,1,2)
+        connect_nodes_bi(self.nodes,1,3)
+        connect_nodes_bi(self.nodes,2,3)
+
+        self.is_network_split=False
+        self.sync_all()
+
+    def run_test(self):
+        self.initiateFork()
+        self.testOpReturn()
+        reporter.display_report()
+
+    def initiateFork(self):
+        time.sleep(3) # wait until after the fork time
+        self.nodes[0].generate(7)
+        self.sync_all()
+
+
+    def generateTx(self, node, addrs, data=None):
+        wallet = node.listunspent()
+        wallet.sort(key=lambda x: x["amount"], reverse=False)
+
+        size = 0
+        count = 0
+        decContext = decimal.getcontext().prec
+        decimal.getcontext().prec = 8 + 8  # 8 digits to get to 21million, and each bitcoin is 100 million satoshis
+
+        count += 1
+        utxo = wallet.pop()
+        outp = {}
+        if 1:
+            payamt = satoshi_round(utxo["amount"] / decimal.Decimal(len(addrs)))
+            for x in range(0, len(addrs)):
+                # its test code, I don't care if rounding error is folded into the fee
+                outp[addrs[x]] = payamt
+            if data:
+                outp["data"] = data
+            txn = createrawtransaction([utxo], outp, createWastefulOutput)
+            signedtxn = node.signrawtransaction(txn)
+            size += len(binascii.unhexlify(signedtxn["hex"]))
+            node.sendrawtransaction(signedtxn["hex"])
+        decimal.getcontext().prec = decContext
+        return (count, size)
+
+    @assert_capture()
+    def testOpReturn(self):
+        cnxns = [ x.getconnectioncount() for x in self.nodes]
+        addrsbch = [ x.getnewaddress() for x in self.nodes]
+        addrs = [ self.nodes[0].getaddressforms(x)["legacy"] for x in addrsbch]  # TODO handle bitcoincash addrs in python
+        self.generateTx(self.nodes[0], addrs, hexlify(("*"*200).encode("utf-8")))
+        time.sleep(5) # wait for tx to sync
+        mp = [ x.getmempoolinfo()["size"] for x in self.nodes]
+        print("memory pools are %s" % str(mp))
+        assert(mp == [1,1,1,1])
+        assert([ x.getconnectioncount() for x in self.nodes] == cnxns) # make sure nobody dropped or banned
+
+
+def Test():
+    t = ForkMay2018("debug", clientDirs)
+    t.drop_to_pdb = True
+    bitcoinConf = {
+        "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],
+        "blockprioritysize": 2000000  # we don't want any transactions rejected due to insufficient fees...
+    }
+    # folder to store bitcoin runtime data and logs
+    tmpdir = "--tmpdir=/ramdisk/cashInterop"
+
+    for arg in sys.argv[1:]:
+        if "--tmpdir=" in arg:
+            tmpdir = str(arg)
+            logging.info("# User input : %s" %tmpdir)
+
+    t.main([tmpdir], bitcoinConf, None)
+
+if __name__ == "__main__":
+    Test()

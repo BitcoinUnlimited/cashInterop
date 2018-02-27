@@ -151,3 +151,4 @@ def assert_capture(*args, **kwargs):
             reporter.add_testcase(tc)
         return inner
     return assert_decorator
+
