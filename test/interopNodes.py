@@ -21,12 +21,16 @@ def XT_setMay2018ForkTime(self, secondsSinceEpoch):
 
 def addInteropApis(node, bin):
     if "bucash" in bin:
+        node.clientName = "bucash"
         node.setMay2018ForkTime = types.MethodType(BU_setMay2018ForkTime,node)
     elif "abc" in bin:
+        node.clientName = "abc"
         pass
     elif "xt" in bin:
+        node.clientName = "xt"
         pass
     else:
+        node.clientName = "unknown"
         pass
     return node
 
