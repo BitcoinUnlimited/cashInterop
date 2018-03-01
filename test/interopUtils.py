@@ -125,8 +125,8 @@ def assert_capture(*args, **kwargs):
                     tc['message'] = ""
                 tc['status'] = 'fail'
                 exc_type, exc_obj, exc_tb = sys.exc_info()
-                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                fline = exc_tb.tb_lineno
+                fname = os.path.split(exc_tb.tb_next.tb_frame.f_code.co_filename)[1]
+                fline = exc_tb.tb_next.tb_lineno
                 tc['fname'] = fname
                 tc['line'] = fline
                 tc['type'] = "assertion"
