@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2018 The Bitcoin Unlimited developers
+# Copyright (c) 2017 Oskar Hladky
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
     Helper file to perform encoding and decoding of cashaddresses
-    Implementation is borrowed from github project
     See Reference:
     https://github.com/oskyk/cashaddress
 """

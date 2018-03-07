@@ -30,7 +30,6 @@ try:
 except ImportError:
     raise ImportError("\nPlease download and pip3 install package base58-0.2.5-py3-none-any.whl (see steps from cachaddress/convert.py)")
 
-#from cashaddress import convert
 if sys.version_info[0] < 3:
     raise "Use Python 3"
 import logging
@@ -70,7 +69,8 @@ def bitcoinAddress2bin(btcAddress):
     legacyAddressBytes = b''
     # btcAddress contains prefix
     if convert.is_valid(btcAddress):
-        legacyAddressBytes = convert.to_legacy_address(btcAddress).encode()
+        # 2nd argument "1" is included for regtest; otherwise, omit the second argument
+        legacyAddressBytes = convert.to_legacy_address(btcAddress, 1).encode()
     else:
         assert(0)  # should not arrive here
     return legacyAddressBytes
