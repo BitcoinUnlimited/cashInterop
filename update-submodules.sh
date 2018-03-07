@@ -1,5 +1,8 @@
 #!/bin/bash 
+<<<<<<< HEAD
 # helper to update the submodules to the latest specified branches
+=======
+>>>>>>> 0a2bea6... helper to checkout and update to latest submodules
 
 if [ "$1" == "-h" ]; then
   echo "Usage: ./`basename $0` [bu_branch_name] [abc_branch_name] [xt_branch_name]"
