@@ -37,19 +37,23 @@ def verify_chain_tip(self, nodeId):
 
 
 class ForkMay2018(BitcoinTestFramework):
-    def __init__(self, build_variant, client_dirs):
+    def __init__(self, build_variant, client_dirs, bitcoinConfDict):
         BitcoinTestFramework.__init__(self)
         self.buildVariant = build_variant
         self.clientDirs = client_dirs
         self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
         self.forkTime = int(time.time())
-        self.conf = { "forkMay2018time": self.forkTime, "acceptnonstdtxn": 0 }
+        self.conf = { "forkMay2018time": self.forkTime, "acceptnonstdtxn": 0, "relaypriority": 0 }
+        self.conf.update(bitcoinConfDict)
         logging.info(self.bins)
 
     def setup_network(self, split=False):
         logging.info(self.bins)
 
         self.nodes = interopNodes.start(self.options.tmpdir, clientDirs, self.bins, self.conf)
+
+        for n in self.nodes:
+            n.setmocktime(self.forkTime-10)
 
         # Connect each node to the other
         connect_nodes_bi(self.nodes,0,1)
@@ -69,12 +73,14 @@ class ForkMay2018(BitcoinTestFramework):
         reporter.display_report()
 
     def initiateFork(self):
-        time.sleep(3) # wait until after the fork time
-        self.nodes[0].generate(7)
+        for n in self.nodes:
+            n.setmocktime(self.forkTime+10)
+        self.nodes[0].generate(20)
         self.sync_blocks()
 
 
     def generateTx(self, node, addrs, data=None):
+        FEE = decimal.Decimal("0.0001")
         wallet = node.listunspent()
         wallet.sort(key=lambda x: x["amount"], reverse=False)
 
@@ -87,13 +93,14 @@ class ForkMay2018(BitcoinTestFramework):
         utxo = wallet.pop()
         outp = {}
         if 1:
-            payamt = satoshi_round(utxo["amount"] / decimal.Decimal(len(addrs)))
+            payamt = satoshi_round((utxo["amount"]-FEE) / decimal.Decimal(len(addrs)))
             for x in range(0, len(addrs)):
                 # its test code, I don't care if rounding error is folded into the fee
                 outp[addrs[x]] = payamt
             if data:
                 outp["data"] = data
             txn = createrawtransaction([utxo], outp, p2pkh)
+            #txn = createrawtransaction([utxo], outp, createWastefulOutput)
             signedtxn = node.signrawtransaction(txn)
             size += len(binascii.unhexlify(signedtxn["hex"]))
             node.sendrawtransaction(signedtxn["hex"])
@@ -122,21 +129,29 @@ class ForkMay2018(BitcoinTestFramework):
         cnxns = [ x.getconnectioncount() for x in self.nodes]
         addrsbch = [ x.getnewaddress() for x in self.nodes]
         addrs = [ self.nodes[0].getaddressforms(x)["legacy"] for x in addrsbch]  # TODO handle bitcoincash addrs in python
-        tx = self.generateTx(self.nodes[0], addrs, hexlify(("*"*200).encode("utf-8")))
-        time.sleep(5) # wait for tx to sync
-        mp = [ x.getmempoolinfo()["size"] for x in self.nodes]
-        print("memory pools are %s" % str(mp))
-        assert mp == [1,1,1,1], "transaction was not relayed to all nodes %s" % str(mp)
-        assert [ x.getconnectioncount() for x in self.nodes] == cnxns # make sure nobody dropped or banned
+        count=1
+        for n in self.nodes:
+            # tx = self.generateTx(n, addrs, hexlify(("*"*2).encode("utf-8")))
+            tx = self.generateTx(n, addrs)
+            mp = [0]*4
+            tries = 10
+            while mp != [count]*4 and tries > 0:
+                tries -= 1
+                time.sleep(1) # wait for tx to sync
+                mp = [ x.getmempoolinfo()["size"] for x in self.nodes]
+            print("memory pools are %s" % str(mp))
+            assert mp == [count]*4, "transaction was not relayed to all nodes %s" % str(mp)
+            assert [ x.getconnectioncount() for x in self.nodes] == cnxns # make sure nobody dropped or banned
+            count += 1
 
 
 def Test():
-    t = ForkMay2018("debug", clientDirs)
-    t.drop_to_pdb = True
     bitcoinConf = {
-        "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],
+        "debug": ["all"],
         "blockprioritysize": 2000000  # we don't want any transactions rejected due to insufficient fees...
     }
+    t = ForkMay2018("debug", clientDirs, bitcoinConf)
+    t.drop_to_pdb = True
     # folder to store bitcoin runtime data and logs
     tmpdir = "--tmpdir=/ramdisk/cashInterop"
 
@@ -145,7 +160,7 @@ def Test():
             tmpdir = str(arg)
             logging.info("# User input : %s" %tmpdir)
 
-    t.main([tmpdir], bitcoinConf, None)
+    t.main([tmpdir])
 
 if __name__ == "__main__":
     Test()

@@ -37,7 +37,7 @@ def addInteropApis(node, bin):
 configXlat = {
     "forkMay2018time" : { "bucash" : "mining.forkMay2018Time",
                           "xt" : "thirdhftime",
-                          "abc" : "unknown" }
+                          "abc" : "monolithactivationtime" }
 }
 
 def start(datadir, clientDirs, bins, conf):
