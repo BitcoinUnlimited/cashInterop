@@ -24,6 +24,11 @@ import test_framework.script as script
 from test_framework.mininode import COIN
 
 from interopUtils import *
+# helpers for converting legacy BCH address to new format
+try:
+    from cashaddress import convert
+except ImportError:
+    raise ImportError("\nPlease download and pip3 install package base58-0.2.5-py3-none-any.whl (see steps from cachaddress/convert.py)")
 
 if sys.version_info[0] < 3:
     raise "Use Python 3"
@@ -55,14 +60,20 @@ SIZE_30_MB = 30000000
 SIZE_31_MB = 31000000
 SIZE_32_MB = 32000000
 
+REGTEST_PREFIX = 'bchreg:'
+B58_DIGITS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
 def bitcoinAddress2bin(btcAddress):
     """convert a bitcoin address to binary data capable of being put in a CScript"""
-    # chop the version and checksum out of the bytes of the address
-    return decodeBase58(btcAddress)[1:-4]
-
-#B58_DIGITS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-#Fool decoder to include extra digits
-B58_DIGITS = ':0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+    #print("btcAddress = ", btcAddress)
+    legacyAddressBytes = b''
+    # btcAddress contains prefix
+    if convert.is_valid(btcAddress):
+        # 2nd argument "1" is included for regtest; otherwise, omit the second argument
+        legacyAddressBytes = convert.to_legacy_address(btcAddress, 1).encode()
+    else:
+        assert(0)  # should not arrive here
+    return legacyAddressBytes
 
 def decodeBase58(s):
     """Decode a base58-encoding string, returning bytes"""
@@ -111,7 +122,6 @@ def wastefulOutput(btcAddress):
     # trim 31 chars due to extra agruments inputs to CScript  
     # len(bitcoinAddress2bin(btcAddress))) = 20 and the others addd up to be 11
     data = data[:-65]
-    btcAddress = btcAddress.split(":")[1]
     ret = CScript([data, OP_DROP, OP_DUP, OP_HASH160, bitcoinAddress2bin(btcAddress), OP_EQUALVERIFY, OP_CHECKSIG])
     return ret
 
@@ -179,7 +189,6 @@ def generateTx(node, txBytes, addrs, data=None):
     while size < txBytes:
         count += 1
         utxo = wallet.pop()
-        #print(">>>> UTXO  :", utxo)
         outp = {}
         # Make the tx bigger by adding addtl outputs so it validates faster
         payment = satoshi_round(utxo["amount"] / decimal.Decimal(8.0))
@@ -345,13 +354,6 @@ def test_set_values_cmdline(self, fblksize=32000000, exblksize=32000000):
         self.nodes[3].set("mining.forkMay2018Time=0")
         nodeInfo = self.nodes[3].getnetworkinfo()
 
-        # if this is a bitcoin cash build, we need to do the cash defaults on our old chain node
-#        if int(nodeInfo["localservices"],16)&NODE_BITCOIN_CASH:
-#            self.nodes[3].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
-#            self.nodes[3].set("net.onlyRelayForkSig=False")
-#            self.nodes[2].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
-#            self.nodes[2].set("net.onlyRelayForkSig=False")
-        #print("Returning NOW = ", now)
     except (Exception, JSONRPCException) as e1:
         logging.info(e1)
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -663,9 +665,9 @@ class LargeBlkTest(BitcoinTestFramework):
         test_generate_largeblock(self, id1, id2, SIZE_20_MB, self.addrs0, data=TX_DATA)
         #test_generate_largeblock(self, id1, id2, SIZE_24_MB, self.addrs0, data=TX_DATA)
         test_generate_largeblock(self, id1, id2, SIZE_28_MB, self.addrs0, data=TX_DATA)
-        # will cause CreateNewBlock: Excessive block generated:  (code 0) 
-        # because of  test_set_values_cmdline(self, fblksize=SIZE_32_MB, exblksize=SIZE_31_MB) 
-        test_generate_largeblock(self, id1, id2, SIZE_32_MB, self.addrs0, data=TX_DATA) 
+        # will cause CreateNewBlock: Excessive block generated:  (code 0)
+        # because of  test_set_values_cmdline(self, fblksize=SIZE_32_MB, exblksize=SIZE_31_MB)
+        test_generate_largeblock(self, id1, id2, SIZE_32_MB, self.addrs0, data=TX_DATA)
         reporter.display_report()
 
 def main(longTest):
