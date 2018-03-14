@@ -21,6 +21,20 @@ Setup
 	$ git submodule update --init --recursive
 	```
 
+    Note: If you encounter following error message due to access permission on ABC development branch. Please execute the script on next step.
+
+	```
+        Cloning into 'abc'...
+        fatal: unable to access 'https://reviews.bitcoinabc.org/source/bitcoin-abc.git/': gnutls_handshake() failed: Error in the pull function.
+        fatal: clone of 'https://reviews.bitcoinabc.org/source/bitcoin-abc.git' into submodule path 'abc' failed
+	```
+
+3. Execute the following step to fallback to the master branch of ABC in github
+
+	```
+	$ ./update-submodules.sh
+	```
+
 Dependencies
 =====================
 Make sure all package dependencies are installed (see Quick installation instructions section in [BitcoinUnlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited)). 
