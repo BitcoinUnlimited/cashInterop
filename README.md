@@ -15,37 +15,50 @@ Setup
      $ git clone https://github.com/username/cashInterop.git
     ```
 
-ABC submodule now points to ABC development branch which contains latest changes (see URL from .gitmodules). Some users may encounter problem on accessing this branch.
+2. Change directory to cashInterop, and enter the following command to initialize and fetch the submodules.
 
-Steps 2 to 6 are provided here to allow fallback to the ABC github release branch. You may also execute the helper script "update-submodules.sh" to update your environment.
+	```
+	$ git submodule update --init --recursive
+	```
 
-2. Change directory to cashInterop, and enter the following command to clone the ABC submodule
+    Note: ABC submodule now points to development branch which contains latest changes (see URL from .gitmodules).
+          If you encounter problem on accessing this branch, please execute the helper script in next step.
+
+3. Execute the following step to fallback to the master branch of ABC in github
+
+	```
+	$ ./update-submodules.sh
+	```
+
+Alternatively, you may also follow steps 4 to 8 to manually fallback to the ABC github branch.
+
+4. Change directory to cashInterop, and enter the following command to clone the ABC submodule
 
 	```
 	$ git clone https://github.com/Bitcoin-ABC/bitcoin-abc.git abc
 	```
 
-3. Initialize and fetch the BU and XT submodules with
+5. Initialize and fetch the BU and XT submodules with
 
 	```
 	$ git submodule update --init --recursive bucash xt
 	```
 
-4. Change directory to bucash. Check out and pull the 'dev' branch for BU submodule
+6. Change directory to bucash. Check out and pull the 'dev' branch for BU submodule
 
 	```
 	$ cd bucash
         $ git checkout dev && git pull --ff origin dev
 	```
 
-5. Change directory to abc. Check out the 'master' branch for ABC
+7. Change directory to abc. Check out the 'master' branch for ABC
 
 	```
 	$ cd ../abc
         $ git checkout master && git pull --ff origin master
 	```
 
-6. Change directory to xt, and check out the 'master' branch for XT
+8. Change directory to xt, and check out the 'master' branch for XT
 
 	```
 	$ cd ../xt
