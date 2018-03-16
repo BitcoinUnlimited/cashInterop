@@ -11,28 +11,45 @@ Setup
 
 1. Enter the following command for cashInterop project, which has submodules in it. Replace username with your github username
 
-	```
-	$ git clone https://github.com/username/cashInterop.git
-	```
+    ```
+     $ git clone https://github.com/username/cashInterop.git
+    ```
 
-2. Change directory to cashInterop, and enter the following command to initialize and fetch the submodules 
+ABC submodule now points to ABC development branch which contains latest changes (see URL from .gitmodules). Some users may encounter problem on accessing this branch.
 
-	```
-	$ git submodule update --init --recursive
-	```
+Steps 2 to 6 are provided here to allow fallback to the ABC github release branch. You may also execute the helper script "update-submodules.sh" to update your environment.
 
-    Note: If you encounter following error message due to access permission on ABC development branch. Please execute the script on next step.
+2. Change directory to cashInterop, and enter the following command to clone the ABC submodule
 
 	```
-        Cloning into 'abc'...
-        fatal: unable to access 'https://reviews.bitcoinabc.org/source/bitcoin-abc.git/': gnutls_handshake() failed: Error in the pull function.
-        fatal: clone of 'https://reviews.bitcoinabc.org/source/bitcoin-abc.git' into submodule path 'abc' failed
+	$ git clone https://github.com/Bitcoin-ABC/bitcoin-abc.git abc
 	```
 
-3. Execute the following step to fallback to the master branch of ABC in github
+3. Initialize and fetch the BU and XT submodules with
 
 	```
-	$ ./update-submodules.sh
+	$ git submodule update --init --recursive bucash xt
+	```
+
+4. Change directory to bucash. Check out and pull the 'dev' branch for BU submodule
+
+	```
+	$ cd bucash
+        $ git checkout dev && git pull --ff origin dev
+	```
+
+5. Change directory to abc. Check out the 'master' branch for ABC
+
+	```
+	$ cd ../abc
+        $ git checkout master && git pull --ff origin master
+	```
+
+6. Change directory to xt, and check out the 'master' branch for XT
+
+	```
+	$ cd ../xt
+        $ git checkout master && git pull --ff origin master
 	```
 
 Dependencies
