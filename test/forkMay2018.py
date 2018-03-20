@@ -19,6 +19,8 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import *
 from test_framework.blocktools import *
 from interopUtils import *
+from test_framework.key import CECKey
+from test_framework.script import *
 import interopNodes
 
 def verify_chain_tip(self, nodeId):
@@ -35,6 +37,15 @@ def verify_chain_tip(self, nodeId):
     assert_equal(tips[0]['branchlen'], 0)
     assert_equal(tips[0]['status'], 'active')
 
+def p2sh(btcAddress):
+    """ create a pay-to-script-hash script"""
+    private_key = CECKey()
+    private_key.set_secretbytes(b"helloworld")
+    public_key = private_key.get_pubkey()
+    redeem_script = CScript([public_key] + [ OP_2DUP, OP_CHECKSIGVERIFY] * 5 + [OP_CHECKSIG])
+    redeem_script_hash = hash160(redeem_script)
+    p2sh_script = CScript([OP_HASH160, redeem_script_hash, OP_EQUAL])
+    return p2sh_script
 
 class ForkMay2018(BitcoinTestFramework):
     def __init__(self, build_variant, client_dirs, bitcoinConfDict):
@@ -70,6 +81,7 @@ class ForkMay2018(BitcoinTestFramework):
         self.preTestOpReturn()
         self.initiateFork()
         self.testOpReturn()
+        self.testOpP2SH()
         reporter.display_report()
 
     def initiateFork(self):
@@ -78,8 +90,12 @@ class ForkMay2018(BitcoinTestFramework):
         self.nodes[0].generate(20)
         self.sync_blocks()
 
+    def emptyMemPool(self):
+        self.nodes[0].generate(1)
+        # mempool should be empty, all txns confirmed
+        assert_equal(set(self.nodes[0].getrawmempool()), set())
 
-    def generateTx(self, node, addrs, data=None):
+    def generateTx(self, node, addrs, data=None, script=p2pkh):
         FEE = decimal.Decimal("0.0001")
         wallet = node.listunspent()
         wallet.sort(key=lambda x: x["amount"], reverse=False)
@@ -99,7 +115,7 @@ class ForkMay2018(BitcoinTestFramework):
                 outp[addrs[x]] = payamt
             if data:
                 outp["data"] = data
-            txn = createrawtransaction([utxo], outp, p2pkh)
+            txn = createrawtransaction([utxo], outp, script)
             #txn = createrawtransaction([utxo], outp, createWastefulOutput)
             signedtxn = node.signrawtransaction(txn)
             size += len(binascii.unhexlify(signedtxn["hex"]))
@@ -144,6 +160,31 @@ class ForkMay2018(BitcoinTestFramework):
             assert [ x.getconnectioncount() for x in self.nodes] == cnxns # make sure nobody dropped or banned
             count += 1
 
+    @assert_capture()
+    def testOpP2SH(self):
+        cnxns = [ x.getconnectioncount() for x in self.nodes]
+        addrsbch = [ x.getnewaddress() for x in self.nodes]
+        addrs = [ self.nodes[0].getaddressforms(x)["legacy"] for x in addrsbch]  # TODO handle bitcoincash addrs in python
+        count=1
+        #clean up mempool before testing
+        self.emptyMemPool()
+        # for each node: create a txn that spends to that P2SH.
+        for n in self.nodes:
+            tx = self.generateTx(n, addrs, hexlify(("*"*2).encode("utf-8")), p2sh)  #p2sh
+            mp = [0]*4
+            tries = 10
+            while mp != [count]*4 and tries > 0:
+                tries -= 1
+                time.sleep(1) # wait for tx to sync
+                mp = [ x.getmempoolinfo()["size"] for x in self.nodes]
+            print("memory pools are %s" % str(mp))
+            assert mp == [count]*4, "transaction was not relayed to all nodes %s" % str(mp)
+            assert [ x.getconnectioncount() for x in self.nodes] == cnxns # make sure nobody dropped or banned
+            count += 1
+        # mine a block and verify that all nodes accept it
+        self.nodes[0].generate(1)
+        sync_blocks(self.nodes)
+        logging.info("mempool counts: %s" % [ x.getmempoolinfo()["size"] for x in self.nodes])
 
 def Test():
     bitcoinConf = {
