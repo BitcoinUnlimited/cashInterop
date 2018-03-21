@@ -37,7 +37,10 @@ def addInteropApis(node, bin):
 configXlat = {
     "forkMay2018time" : { "bucash" : "mining.forkMay2018Time",
                           "xt" : "thirdhftime",
-                          "abc" : "monolithactivationtime" }
+                          "abc" : "monolithactivationtime" },
+    "limitfreerelay" : { "bucash" : "",
+                         "xt" : "",
+                         "abc" : "limitfreerelay" }
 }
 
 def start(datadir, clientDirs, bins, conf):
@@ -49,7 +52,8 @@ def start(datadir, clientDirs, bins, conf):
             if k in confDict:
                 val = confDict[k]
                 del confDict[k]
-                confDict[xlat[name]] = val
+                if xlat[name]:
+                    confDict[xlat[name]] = val
         test_framework.util.initialize_datadir(datadir, i, confDict)
         node = test_framework.util.start_node(i, datadir, binary=executable)
         addInteropApis(node, name)
