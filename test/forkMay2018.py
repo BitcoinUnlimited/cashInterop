@@ -54,7 +54,7 @@ class ForkMay2018(BitcoinTestFramework):
         self.clientDirs = client_dirs
         self.bins = [ os.path.join(base_dir, x, self.buildVariant, "src","bitcoind") for x in clientDirs]
         self.forkTime = int(time.time())
-        self.conf = { "forkMay2018time": self.forkTime, "acceptnonstdtxn": 0, "relaypriority": 0 }
+        self.conf = { "forkMay2018time": self.forkTime, "acceptnonstdtxn": 0, "relaypriority": 0, "limitfreerelay":1}
         self.conf.update(bitcoinConfDict)
         logging.info(self.bins)
 
@@ -96,7 +96,6 @@ class ForkMay2018(BitcoinTestFramework):
         assert_equal(set(self.nodes[0].getrawmempool()), set())
 
     def generateTx(self, node, addrs, data=None, script=p2pkh):
-        FEE = decimal.Decimal("0.0001")
         wallet = node.listunspent()
         wallet.sort(key=lambda x: x["amount"], reverse=False)
 
@@ -109,7 +108,7 @@ class ForkMay2018(BitcoinTestFramework):
         utxo = wallet.pop()
         outp = {}
         if 1:
-            payamt = satoshi_round((utxo["amount"]-FEE) / decimal.Decimal(len(addrs)))
+            payamt = satoshi_round((utxo["amount"]) / decimal.Decimal(len(addrs)))
             for x in range(0, len(addrs)):
                 # its test code, I don't care if rounding error is folded into the fee
                 outp[addrs[x]] = payamt
