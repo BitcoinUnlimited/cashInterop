@@ -11,14 +11,58 @@ Setup
 
 1. Enter the following command for cashInterop project, which has submodules in it. Replace username with your github username
 
-	```
-	$ git clone https://github.com/username/cashInterop.git
-	```
+    ```
+     $ git clone https://github.com/username/cashInterop.git
+    ```
 
-2. Change directory to cashInterop, and enter the following command to initialize and fetch the submodules 
+2. Change directory to cashInterop, and enter the following command to initialize and fetch the submodules.
 
 	```
 	$ git submodule update --init --recursive
+	```
+
+    Note: ABC submodule now points to development branch which contains latest changes (see URL from .gitmodules).
+          If you encounter problem on accessing this branch, please execute the helper script in next step.
+
+3. Execute the following step to fallback to the master branch of ABC in github
+
+	```
+	$ ./update-submodules.sh
+	```
+
+Alternatively, you may also follow steps 4 to 8 to manually fallback to the ABC github branch.
+
+4. Change directory to cashInterop, and enter the following command to clone the ABC submodule
+
+	```
+	$ git clone https://github.com/Bitcoin-ABC/bitcoin-abc.git abc
+	```
+
+5. Initialize and fetch the BU and XT submodules with
+
+	```
+	$ git submodule update --init --recursive bucash xt
+	```
+
+6. Change directory to bucash. Check out and pull the 'dev' branch for BU submodule
+
+	```
+	$ cd bucash
+        $ git checkout dev && git pull --ff origin dev
+	```
+
+7. Change directory to abc. Check out the 'master' branch for ABC
+
+	```
+	$ cd ../abc
+        $ git checkout master && git pull --ff origin master
+	```
+
+8. Change directory to xt, and check out the 'master' branch for XT
+
+	```
+	$ cd ../xt
+        $ git checkout master && git pull --ff origin master
 	```
 
 Dependencies
