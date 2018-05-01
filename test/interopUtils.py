@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2017 The Bitcoin Unlimited developers
+# Copyright (c) 2018 The Bitcoin Unlimited developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 import logging
 import os
 import sys
+import signal
 global reporter
 import pdb
 
-#clientDirs = ["bucash", "abc", "xt", "classic"]
-#clientSubvers = set(["Bitcoin ABC", "Classic", "Bitcoin XT", "BUCash"])
+#clientDirs = ["bucash", "abc", "xt", "hub"]
+#clientSubvers = set(["Bitcoin ABC", "Flowee the Hub", "Bitcoin XT", "BUCash"])
 clientDirs = ["bucash", "abc", "xt", "bucash"]
 clientSubvers = set(["Bitcoin ABC", "Bitcoin XT", "BUCash"])
 
@@ -38,6 +39,13 @@ def verifyInterconnect(nodes, clientTypes=clientSubvers):
         if notConnectedTo:
             print("Client %s is not connected to %s" % (myclient, str(notConnectedTo)))
         assert(len(notConnectedTo) == 0)
+
+def kill_running_process(appName="bitcoind"):
+    """ Clean up system to start without previously leftover bitcoind """
+    for line in os.popen("ps ax | grep " + appName + " | grep -v grep"):
+        fields = line.split()
+        pid = fields[0]
+        os.kill(int(pid), signal.SIGKILL)
 
 class TCReporter(object):
     """

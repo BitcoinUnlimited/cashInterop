@@ -1,5 +1,7 @@
 PLLEL:=-j11
 VARIANT:=debug
+SRC:=src
+BITCOIND:=bitcoind
 
 COMMON_CONF_FLAGS:=--enable-debug --disable-hardening --disable-bench --disable-tests --disable-gui-tests --with-gui=no 
 
@@ -8,16 +10,15 @@ XT_CONF_FLAGS:=$(COMMON_CONF_FLAGS)
 ABC_CONF_FLAGS:=$(COMMON_CONF_FLAGS)
 CLASSIC_CONF_FLAGS:=$(COMMON_CONF_FLAGS) --enable-uahf
 
-.PHONY: bu abc xt classic
+.PHONY: bu abc xt hub
 
-all: bu abc xt
+all: bu abc xt hub
 
 clean:
 	-(cd bucash/$(VARIANT); make clean)
 	-(cd xt/$(VARIANT); make clean)
 	-(cd abc/$(VARIANT); make clean)
-#	(cd classic; make clean)
-
+	-(cd hub/$(VARIANT); make clean)
 
 bu:
 	(cd bucash; ./autogen.sh)
@@ -37,9 +38,7 @@ abc:
 	(cd abc/$(VARIANT); ../configure $(ABC_CONF_FLAGS))
 	(cd abc/$(VARIANT); $(MAKE) $(PLLEL))
 
-classic:
-	(cd classic; ./autogen.sh)
-	(cd classic; mkdir -p $(VARIANT))
-	(cd classic/$(VARIANT); ../configure $(CLASSIC_CONF_FLAGS))
-	(cd classic/$(VARIANT); $(MAKE) $(PLLEL))
-
+hub:
+	(cd hub; cmake CMakeLists.txt -DQt5Core_FOUND=OFF -Denable_gui=OFF -Denable_wallet=ON)
+	(cd hub; mkdir -p $(VARIANT)/$(SRC); $(MAKE); cp hub/hub $(VARIANT)/$(SRC))
+	(cd hub/$(VARIANT)/$(SRC); cp hub $(BITCOIND))
